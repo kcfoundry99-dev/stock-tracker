@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Vinyl Vault - 黑膠典藏</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #fff;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(236, 72, 153, 0.2) 50%, rgba(88, 28, 135, 0.4) 100%);
+            backdrop-filter: blur(30px);
+            border-radius: 32px;
+            padding: 50px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .header h1 {
+            font-size: 52px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #f5f5f5 50%, #e0e0e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .header p { color: rgba(255,255,255,0.6); font-size: 18px; font-weight: 300; position: relative; }
+        .tabs { display: flex; justify-content: center; gap: 12px; margin-bottom: 40px; flex-wrap: wrap; }
+        .tab {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            padding: 16px 32px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .tab:hover { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.2); }
+        .tab.active { 
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+            color: #fff;
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+        }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 28px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .stat-value { font-size: 36px; font-weight: 700; background: linear-gradient(135deg, #a78bfa 0%, #f472b6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-label { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 8px; letter-spacing: 1px; text-transform: uppercase; }
+        .card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 36px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .card h2 { font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #fff; display: flex; align-items: center; gap: 12px; }
+        .camera-section {
+            background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
+            border-radius: 28px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 2px dashed rgba(139, 92, 246, 0.3);
+            text-align: center;
+        }
+        .camera-preview {
+            width: 100%;
+            max-width: 500px;
+            height: 380px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%);
+            border-radius: 24px;
+            margin: 0 auto 24px;
+            overflow: hidden;
+            position: relative;
+        }
+        #videoPreview { width: 100%; height: 100%; object-fit: cover; }
+        #canvasPreview { display: none; width: 100%; height: 100%; object-fit: cover; }
+        .camera-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.4);
+        }
+        .camera-placeholder span { font-size: 80px; margin-bottom: 16px; }
+        .camera-controls { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+        .btn {
+            padding: 16px 32px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(139, 92, 246, 0.4); }
+        .btn-secondary { 
+            background: rgba(255,255,255,0.08); 
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+        .btn-success { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.3);
+        }
+        .analysis-steps { display: flex; justify-content: center; gap: 40px; margin-top: 32px; flex-wrap: wrap; }
+        .step { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.4); font-size: 14px; transition: all 0.3s; }
+        .step.active { color: #a78bfa; }
+        .step-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: all 0.3s; }
+        .step.active .step-dot { background: linear-gradient(135deg, #8b5cf6, #ec4899); box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+        .recognition-result {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 28px;
+            padding: 36px;
+            margin-top: 36px;
+            display: none;
+            animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .recognition-result.active { display: block; }
+        .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .result-header h3 { font-size: 22px; font-weight: 600; background: linear-gradient(135deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .confidence-badge {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+            color: #34d399;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .result-content { display: grid; grid-template-columns: 220px 1fr; gap: 32px; align-items: start; }
+        @media (max-width: 600px) { .result-content { grid-template-columns: 1fr; } }
+        .result-cover {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1f4a 50%, #1a1a2e 100%);
+            border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 100px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .result-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .result-cover::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+            animation: shine 3s infinite;
+        }
+        @keyframes shine { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+        .result-info h4 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+        .result-info p { color: rgba(255,255,255,0.6); margin-bottom: 16px; line-height: 1.7; font-size: 15px; }
+        .result-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+        .meta-tag {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .result-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .result-actions .btn { padding: 14px 24px; font-size: 14px; }
+        .vinyl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+        .vinyl-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .vinyl-card:hover { transform: translateY(-8px); border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 24px 48px rgba(0,0,0,0.3); }
+        .vinyl-cover {
+            width: 100%; aspect-ratio: 1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1f4a 50%, #1a1a2e 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 80px;
+            position: relative;
+        }
+        .vinyl-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .vinyl-cover::after {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.05) 0%, transparent 60%);
+        }
+        .vinyl-info { padding: 20px; }
+        .vinyl-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+        .vinyl-artist { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+        .vinyl-price { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #34d399, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .wishlist-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 24px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%);
+            border-radius: 18px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-left: 4px solid #fbbf24;
+            transition: all 0.3s;
+        }
+        .wishlist-item:hover { background: rgba(255,255,255,0.05); }
+        .wishlist-info h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .wishlist-info p { font-size: 13px; color: rgba(255,255,255,0.5); }
+        .loading-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            align-items: center; justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 70px; height: 70px;
+            border: 3px solid rgba(139, 92, 246, 0.2);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 24px; font-size: 18px; color: rgba(255,255,255,0.7); }
+        .tip-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            display: flex; align-items: center; gap: 14px;
+        }
+        .tip-box span { font-size: 24px; }
+        .section-title {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15));
+            padding: 16px 24px;
+            border-radius: 14px;
+            margin: 32px 0 20px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+        }
+        .search-box { display: flex; gap: 12px; margin-bottom: 24px; }
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            color: white;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .search-input:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); background: rgba(255,255,255,0.05); }
+        .search-input::placeholder { color: rgba(255,255,255,0.4); }
+        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+        .chart-container { height: 320px; margin-top: 16px; }
+        .search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 24px; }
+        .search-result-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .search-result-card:hover { border-color: rgba(139, 92, 246, 0.5); transform: translateY(-4px); }
+        .search-result-cover {
+            width: 100%; aspect-ratio: 1;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1f4a 100%);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .search-result-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .search-result-info { padding: 16px; }
+        .search-result-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+        .search-result-artist { font-size: 13px; color: rgba(255,255,255,0.5); }
+        .search-result-year { font-size: 12px; color: #a78bfa; margin-top: 8px; }
+        .edit-form input, .edit-form select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            color: white;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .edit-form input:focus, .edit-form select:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
+        
+        /* 標籤拍攝區域樣式 */
+        .label-section {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border: 2px dashed rgba(16, 185, 129, 0.4);
+        }
+        .label-preview {
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #1a2e2a 0%, #0a0f0e 100%);
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            overflow: hidden;
+            position: relative;
+            border: 4px solid rgba(16, 185, 129, 0.3);
+        }
+        #labelVideo { width: 100%; height: 100%; object-fit: cover; }
+        #labelCanvas { display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .label-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+        }
+        .label-placeholder span { font-size: 80px; margin-bottom: 16px; }
+        .label-frame {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 65%;
+            height: 65%;
+            border: 3px solid rgba(16, 185, 129, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .label-frame::before {
+            content: '將標籤對準此框';
+            position: absolute;
+            bottom: -30px; left: 50%; transform: translateX(-50%);
+            font-size: 12px; color: #34d399; white-space: nowrap;
+        }
+        .label-result {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            border-radius: 28px;
+            padding: 32px;
+            margin-top: 32px;
+            display: none;
+        }
+        .label-result.active { display: block; }
+        .label-result h3 { font-size: 20px; font-weight: 600; color: #34d399; margin-bottom: 20px; }
+        .label-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .label-info-item {
+            background: rgba(0,0,0,0.2);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 3px solid #34d399;
+        }
+        .label-info-item label { display: block; font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px; text-transform: uppercase; }
+        .label-info-item span { font-size: 15px; font-weight: 500; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Vinyl Vault</h1>
+            <p>黑膠典藏 · 智能辨識 · 價值追蹤</p>
+        </div>
+        <div class="tabs" id="mainTabs">
+            <button class="tab active" onclick="showTab('scan')">📷 拍攝封面</button>
+            <button class="tab" onclick="showTab('label')">🏷️ 拍攝標籤</button>
+            <button class="tab" onclick="showTab('collection')">💿 我的收藏</button>
+            <button class="tab" onclick="showTab('wishlist')">❤️ 願望清單</button>
+            <button class="tab" onclick="showTab('stats')">📊 統計分析</button>
+        </div>
+        <div id="scanTab">
+            <div class="tip-box"><span>💡</span><span>對準黑膠唱片封面或標籤拍照，AI 將自動辨識唱片資訊</span></div>
+            <div class="camera-section">
+                <div class="camera-preview" id="cameraPreview">
+                    <video id="videoPreview" autoplay playsinline></video>
+                    <canvas id="canvasPreview"></canvas>
+                    <div class="camera-placeholder" id="cameraPlaceholder"><span>📷</span><p>點擊「開啟相機」開始拍攝</p></div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-primary" id="startCameraBtn" onclick="startCamera()">📷 開啟相機</button>
+                    <button class="btn btn-primary" id="captureBtn" onclick="capturePhoto()" style="display:none;">🔴 拍攝</button>
+                    <button class="btn btn-secondary" id="retakeBtn" onclick="retakePhoto()" style="display:none;">🔄 重拍</button>
+                    <button class="btn btn-success" id="recognizeBtn" onclick="recognizePhoto()" style="display:none;">✨ 開始辨識</button>
+                </div>
+                <div class="analysis-steps">
+                    <div class="step active" id="step1"><div class="step-dot"></div><span>拍攝照片</span></div>
+                    <div class="step" id="step2"><div class="step-dot"></div><span>AI 分析</span></div>
+                    <div class="step" id="step3"><div class="step-dot"></div><span>資料比對</span></div>
+                    <div class="step" id="step4"><div class="step-dot"></div><span>完成</span></div>
+                </div>
+            </div>
+            <div class="recognition-result" id="recognitionResult">
+                <div class="result-header">
+                    <h3>✨ 辨識成功</h3>
+                    <span class="confidence-badge" id="confidenceBadge">信心度 95%</span>
+                </div>
+                <div class="result-content">
+                    <div class="result-cover" id="resultCover">
+                        <span id="resultCoverEmoji">🎵</span>
+                        <img id="resultCoverImg" src="" style="display:none;" />
+                    </div>
+                    <div class="result-info">
+                        <h4 id="resultTitle">Album Title</h4>
+                        <p id="resultDescription">描述文字...</p>
+                        <div class="result-meta">
+                            <span class="meta-tag" id="resultYear">1973</span>
+                            <span class="meta-tag" id="resultGenre">Rock</span>
+                            <span class="meta-tag" id="resultLabel">Label</span>
+                        </div>
+                        <div class="result-actions">
+                            <button class="btn btn-secondary" onclick="editResult()">✏️ 編輯</button>
+                            <button class="btn btn-primary" onclick="addToCollection()">➕ 加入收藏</button>
+                            <button class="btn btn-secondary" onclick="addToWishlist()">❤️ 加入願望</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-title">🔍 網路搜尋唱片</div>
+            <div class="search-box">
+                <input type="text" class="search-input" id="webSearch" placeholder="輸入唱片名稱、藝人或專輯...">
+                <button class="btn btn-gold" onclick="webSearch()">🌐 網路搜尋</button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+            <div class="section-title">🔍 或手動輸入唱片資訊</div>
+            <div class="card">
+                <div class="edit-form">
+                    <input type="text" id="manualTitle" placeholder="唱片名稱">
+                    <input type="text" id="manualArtist" placeholder="藝人名稱">
+                    <input type="number" id="manualYear" placeholder="發行年份">
+                    <select id="manualGenre">
+                        <option value="">選擇風格</option>
+                        <option value="Rock">Rock 搖滾</option>
+                        <option value="Jazz">Jazz 爵士</option>
+                        <option value="Pop">Pop 流行</option>
+                        <option value="Electronic">Electronic 電子</option>
+                        <option value="Hip-Hop">Hip-Hop 嘻哈</option>
+                        <option value="Classical">Classical 古典</option>
+                        <option value="Country">Country 鄉村</option>
+                        <option value="R&B">R&B</option>
+                        <option value="Metal">Metal 金屬</option>
+                        <option value="Folk">Folk 民謠</option>
+                    </select>
+                    <input type="text" id="manualLabel" placeholder="唱片公司">
+                    <input type="number" id="manualPrice" placeholder="購買價格">
+                    <input type="number" id="manualValue" placeholder="現在價值">
+                    <button class="btn btn-primary" onclick="addManual()">➕ 加入收藏</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 標籤拍攝 -->
+        <div id="labelTab" style="display:none;">
+            <div class="tip-box" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); border-color: rgba(16, 185, 129, 0.3);">
+                <span>🏷️</span><span>對準黑膠唱片中央標籤拍照，系統將辨識型號、年份、唱片公司等資訊</span>
+            </div>
+            <div class="camera-section label-section">
+                <div class="label-preview" id="labelCameraSection">
+                    <video id="labelVideo" autoplay playsinline></video>
+                    <canvas id="labelCanvas"></canvas>
+                    <div class="label-frame"></div>
+                    <div class="label-placeholder" id="labelPlaceholder"><span>🏷️</span><p>點擊「開啟相機」開始拍攝標籤</p></div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-success" id="labelStartBtn" onclick="startLabelCameraReal()">📷 開啟相機</button>
+                    <button class="btn btn-primary" id="labelCaptureBtn" onclick="captureLabel()" style="display:none;">🔴 拍攝標籤</button>
+                    <button class="btn btn-secondary" id="labelRetakeBtn" onclick="retakeLabel()" style="display:none;">🔄 重拍</button>
+                    <button class="btn btn-success" id="labelAnalyzeBtn" onclick="analyzeLabel()" style="display:none;">🔍 辨識標籤</button>
+                </div>
+                <div class="analysis-steps">
+                    <div class="step active" id="lstep1"><div class="step-dot"></div><span>拍攝標籤</span></div>
+                    <div class="step" id="lstep2"><div class="step-dot"></div><span>OCR 文字</span></div>
+                    <div class="step" id="lstep3"><div class="step-dot"></div><span>解析資訊</span></div>
+                    <div class="step" id="lstep4"><div class="step-dot"></div><span>完成</span></div>
+                </div>
+            </div>
+            <div class="label-result" id="labelResult">
+                <h3>🏷️ 標籤辨識結果</h3>
+                <div class="label-info-grid">
+                    <div class="label-info-item">
+                        <label>專輯名稱</label>
+                        <span id="labelResultTitle">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>藝人</label>
+                        <span id="labelResultArtist">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>發行年份</label>
+                        <span id="labelResultYear">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>唱片公司</label>
+                        <span id="labelResultLabel">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>型號目錄</label>
+                        <span id="labelResultCatalog">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>國家</label>
+                        <span id="labelResultCountry">-</span>
+                    </div>
+                    <div class="label-info-item">
+                        <label>Matrix 碼</label>
+                        <span id="labelResultMatrix">-</span>
+                    </div>
+                </div>
+                <div class="result-actions" style="margin-top: 24px;">
+                    <button class="btn btn-primary" onclick="addLabelToCollection()">➕ 加入收藏</button>
+                    <button class="btn btn-secondary" onclick="addLabelToWishlist()">❤️ 加入願望</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="collectionTab" style="display:none;">
+            <div class="stats">
+                <div class="stat-card"><div class="stat-value" id="totalRecords">0</div><div class="stat-label">總唱片數</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalValue">$0</div><div class="stat-label">收藏總值</div></div>
+                <div class="stat-card"><div class="stat-value" id="avgValue">$0</div><div class="stat-label">平均價值</div></div>
+            </div>
+            <div class="card">
+                <h2>💿 我的收藏</h2>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="collectionSearch" placeholder="搜尋收藏..." onkeyup="renderCollection()">
+                </div>
+                <div class="vinyl-grid" id="vinylGrid"></div>
+            </div>
+        </div>
+        <div id="wishlistTab" style="display:none;">
+            <div class="card"><h2>❤️ 願望清單</h2><div id="wishlistContainer"></div></div>
+        </div>
+        <div id="statsTab" style="display:none;">
+            <div class="charts-row">
+                <div class="card"><h2>🎸 風格分布</h2><div class="chart-container"><canvas id="genreChart"></canvas></div></div>
+                <div class="card"><h2>💰 價值排行</h2><div class="chart-container"><canvas id="valueChart"></canvas></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">正在分析...</div>
+    </div>
+    <script>
+        let collection = JSON.parse(localStorage.getItem('vinylCollection')) || [
+            { id: 1, title: 'Dark Side of the Moon', artist: 'Pink Floyd', year: 1973, genre: 'Rock', price: 29.99, value: 89.99, cover: '', coverImg: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png' },
+            { id: 2, title: 'Kind of Blue', artist: 'Miles Davis', year: 1959, genre: 'Jazz', price: 15.00, value: 45.00, cover: '', coverImg: 'https://upload.wikimedia.org/wikipedia/en/9/9c/MilesDavisKindofBlue.jpg' },
+            { id: 3, title: 'Random Access Memories', artist: 'Daft Punk', year: 2013, genre: 'Electronic', price: 35.00, value: 55.00, cover: '🎹', coverImg: '' },
+            { id: 4, title: 'Abbey Road', artist: 'The Beatles', year: 1969, genre: 'Rock', price: 25.00, value: 75.00, cover: '', coverImg: 'https://upload.wikimedia.org/wikipedia/en/4/42/Beatles_-_Abbey_Road.jpg' },
+            { id: 5, title: 'Thriller', artist: 'Michael Jackson', year: 1982, genre: 'Pop', price: 20.00, value: 35.00, cover: '', coverImg: 'https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png' }
+        ];
+        let wishlist = JSON.parse(localStorage.getItem('vinylWishlist')) || [
+            { id: 1, title: 'Rumours', artist: 'Fleetwood Mac', year: 1977, genre: 'Rock', targetPrice: 40, coverImg: 'https://upload.wikimedia.org/wikipedia/en/f/fb/FMacRumours.PNG' },
+            { id: 2, title: 'Blue Train', artist: 'John Coltrane', year: 1958, genre: 'Jazz', targetPrice: 50, coverImg: '' }
+        ];
+        let videoStream = null, capturedImage = null, currentRecognition = null, searchResultsData = [];
+        
+        function formatCurrency(num) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num); }
+        function saveCollection() { localStorage.setItem('vinylCollection', JSON.stringify(collection)); }
+        function saveWishlist() { localStorage.setItem('vinylWishlist', JSON.stringify(wishlist)); }
+        
+        // 標籤拍攝功能
+        let labelVideoStream = null;
+        
+        async function startLabelCameraReal() {
+            try {
+                labelVideoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                document.getElementById('labelVideo').srcObject = labelVideoStream;
+                document.getElementById('labelVideo').style.display = 'block';
+                document.getElementById('labelPlaceholder').style.display = 'none';
+                document.getElementById('labelStartBtn').style.display = 'none';
+                document.getElementById('labelCaptureBtn').style.display = 'inline-flex';
+                document.getElementById('labelRetakeBtn').style.display = 'none';
+                document.getElementById('labelAnalyzeBtn').style.display = 'none';
+                document.getElementById('labelResult').classList.remove('active');
+            } catch (err) { alert('無法開啟相機：' + err.message); }
+        }
+        
+        function captureLabel() {
+            const video = document.getElementById('labelVideo');
+            const canvas = document.getElementById('labelCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            if (labelVideoStream) labelVideoStream.getTracks().forEach(track => track.stop());
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('labelCaptureBtn').style.display = 'none';
+            document.getElementById('labelRetakeBtn').style.display = 'inline-flex';
+            document.getElementById('labelAnalyzeBtn').style.display = 'inline-flex';
+            updateLabelSteps(2);
+        }
+        
+        function retakeLabel() {
+            document.getElementById('labelCanvas').style.display = 'none';
+            document.getElementById('labelResult').classList.remove('active');
+            startLabelCameraReal();
+            updateLabelSteps(1);
+        }
+        
+        function updateLabelSteps(step) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('lstep' + i).classList.remove('active');
+                if (i <= step) document.getElementById('lstep' + i).classList.add('active');
+            }
+        }
+        
+        async function analyzeLabel() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('loadingText').textContent = '正在辨識標籤文字...';
+            updateLabelSteps(2);
+            await new Promise(r => setTimeout(r, 2500));
+            document.getElementById('loadingText').textContent = '正在解析唱片資訊...';
+            await new Promise(r => setTimeout(r, 1500));
+            document.getElementById('loadingOverlay').classList.remove('active');
+            updateLabelSteps(4);
+            
+            // 模擬辨識結果
+            const mockLabelData = {
+                title: 'Dark Side of the Moon',
+                artist: 'Pink Floyd',
+                year: 1973,
+                label: 'Harvest Records',
+                catalog: 'SHVL 804',
+                country: 'UK',
+                matrix: 'SHVL-804-A-1E'
+            };
+            
+            document.getElementById('labelResultTitle').textContent = mockLabelData.title;
+            document.getElementById('labelResultArtist').textContent = mockLabelData.artist;
+            document.getElementById('labelResultYear').textContent = mockLabelData.year;
+            document.getElementById('labelResultLabel').textContent = mockLabelData.label;
+            document.getElementById('labelResultCatalog').textContent = mockLabelData.catalog;
+            document.getElementById('labelResultCountry').textContent = mockLabelData.country;
+            document.getElementById('labelResultMatrix').textContent = mockLabelData.matrix;
+            document.getElementById('labelResult').classList.add('active');
+            
+            currentRecognition = {
+                title: mockLabelData.title,
+                artist: mockLabelData.artist,
+                year: mockLabelData.year,
+                genre: 'Rock',
+                label: mockLabelData.label,
+                coverImg: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
+                price: 29.99,
+                value: 89.99
+            };
+        }
+        
+        function addLabelToCollection() {
+            if (!currentRecognition) return;
+            collection.push({ id: Date.now(), ...currentRecognition });
+            saveCollection();
+            alert(`已將「${currentRecognition.title}」加入收藏！`);
+        }
+        
+        function addLabelToWishlist() {
+            if (!currentRecognition) return;
+            wishlist.push({ id: Date.now(), title: currentRecognition.title, artist: currentRecognition.artist, year: currentRecognition.year, genre: currentRecognition.genre, targetPrice: currentRecognition.value, coverImg: currentRecognition.coverImg });
+            saveWishlist();
+            alert(`已加入願望清單！`);
+        }
+        
+        function webSearch() {
+            const query = document.getElementById('webSearch').value.trim();
+            if (!query) { alert('請輸入搜尋關鍵字'); return; }
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('loadingText').textContent = '正在搜尋唱片資料...';
+            const mockSearchResults = [
+                { title: 'The Dark Side of the Moon', artist: 'Pink Floyd', year: 1973, genre: 'Rock', label: 'Harvest Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png' },
+                { title: 'Abbey Road', artist: 'The Beatles', year: 1969, genre: 'Rock', label: 'Apple Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/4/42/Beatles_-_Abbey_Road.jpg' },
+                { title: 'Kind of Blue', artist: 'Miles Davis', year: 1959, genre: 'Jazz', label: 'Columbia Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/9/9c/MilesDavisKindofBlue.jpg' },
+                { title: 'Rumours', artist: 'Fleetwood Mac', year: 1977, genre: 'Rock', label: 'Warner Bros', coverImg: 'https://upload.wikimedia.org/wikipedia/en/f/fb/FMacRumours.PNG' },
+                { title: 'Thriller', artist: 'Michael Jackson', year: 1982, genre: 'Pop', label: 'Epic Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png' },
+                { title: 'Back to Black', artist: 'Amy Winehouse', year: 2006, genre: 'R&B', label: 'Island Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/c/c5/Amy_Winehouse_-_Back_to_Black.png' },
+                { title: 'OK Computer', artist: 'Radiohead', year: 1997, genre: 'Rock', label: 'Parlophone', coverImg: 'https://upload.wikimedia.org/wikipedia/en/a/a1/OK_Computer.png' },
+                { title: 'Blue', artist: 'Joni Mitchell', year: 1971, genre: 'Folk', label: 'Reprise Records', coverImg: 'https://upload.wikimedia.org/wikipedia/en/9/9f/Joni_Mitchell_-_Blue.png' }
+            ];
+            searchResultsData = mockSearchResults.filter(r => 
+                r.title.toLowerCase().includes(query.toLowerCase()) || 
+                r.artist.toLowerCase().includes(query.toLowerCase())
+            );
+            setTimeout(() => {
+                renderSearchResults(searchResultsData);
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }, 800);
+        }
+        
+        function renderSearchResults(results) {
+            const container = document.getElementByginnerHTML = results.map((v, i) => `
+            <div class="search-result-card" onclick="selectSearchResult(${i})">
+                <div class="search-result-cover">
+                    ${v.coverImg ? `<img src="${v.coverImg}" alt="${v.title}">` : '<span style="font-size:60px;">🎵</span>'}
+                </div>
+                <div class="search-result-info">
+                    <div class="search-result-title">${v.title}</div>
+                    <div class="search-result-artist">${v.artist}</div>
+                    <div class="search-result-year">${v.year} · ${v.genre}</div>
+                </div>
+            </div>
+        `).join('') || '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px;">找不到相關唱片</p>';
+        }
+        
+        function selectSearchResult(index) {
+            const result = searchResultsData[index];
+            currentRecognition = {
+                title: result.title,
+                artist: result.artist,
+                year: result.year,
+                genre: result.genre,
+                label: result.label || '',
+                coverImg: result.coverImg,
+                price: Math.round(Math.random() * 50 + 20),
+                value: Math.round(Math.random() * 80 + 30)
+            };
+            showRecognitionResult();
+        }
+        
+        function showRecognitionResult() {
+            if (!currentRecognition) return;
+            document.getElementById('resultCoverEmoji').style.display = currentRecognition.coverImg ? 'none' : 'block';
+            document.getElementById('resultCoverImg').style.display = currentRecognition.coverImg ? 'block' : 'none';
+            if (currentRecognition.coverImg) document.getElementById('resultCoverImg').src = currentRecognition.coverImg;
+            document.getElementById('resultTitle').textContent = currentRecognition.title;
+            document.getElementById('resultYear').textContent = currentRecognition.year;
+            document.getElementById('resultGenre').textContent = currentRecognition.genre;
+            document.getElementById('resultLabel').textContent = currentRecognition.label || 'Unknown';
+            document.getElementById('resultDescription').textContent = `${currentRecognition.artist} 的經典專輯，發行於 ${currentRecognition.year} 年，屬於 ${currentRecognition.genre} 類型。`;
+            document.getElementById('confidenceBadge').textContent = `信心度 ${Math.floor(Math.random() * 10 + 85)}%`;
+            document.getElementById('recognitionResult').classList.add('active');
+        }
+        
+        async function startCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                document.getElementById('videoPreview').srcObject = videoStream;
+                document.getElementById('videoPreview').style.display = 'block';
+                document.getElementById('cameraPlaceholder').style.display = 'none';
+                document.getElementById('startCameraBtn').style.display = 'none';
+                document.getElementById('captureBtn').style.display = 'inline-flex';
+                document.getElementById('retakeBtn').style.display = 'none';
+                document.getElementById('recognizeBtn').style.display = 'none';
+                document.getElementById('recognitionResult').classList.remove('active');
+            } catch (err) { alert('無法開啟相機：' + err.message); }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('videoPreview');
+            const canvas = document.getElementById('canvasPreview');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+            if (videoStream) videoStream.getTracks().forEach(track => track.stop());
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'inline-flex';
+            document.getElementById('recognizeBtn').style.display = 'inline-flex';
+            updateSteps(2);
+        }
+        
+        function retakePhoto() {
+            document.getElementById('canvasPreview').style.display = 'none';
+            document.getElementById('recognitionResult').classList.remove('active');
+            startCamera();
+            updateSteps(1);
+        }
+        
+        function updateSteps(step) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('step' + i).classList.remove('active');
+                if (i <= step) document.getElementById('step' + i).classList.add('active');
+            }
+        }
+        
+        async function recognizePhoto() {
+            if (!capturedImage) return;
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('loadingText').textContent = 'AI 正在分析圖片...';
+            updateSteps(2);
+            await new Promise(r => setTimeout(r, 2000));
+            document.getElementById('loadingText').textContent = '正在比對資料庫...';
+            await new Promise(r => setTimeout(r, 1500));
+            document.getElementById('loadingText').textContent = '辨識完成！';
+            await new Promise(r => setTimeout(r, 500));
+            document.getElementById('loadingOverlay').classList.remove('active');
+            updateSteps(4);
+            const mockResults = [
+                { title: 'Dark Side of the Moon', artist: 'Pink Floyd', year: 1973, genre: 'Rock', label: 'Harvest Records', confidence: 96, cover: '🎸', desc: 'Pink Floyd 最經典的專輯之一，融合迷幻搖滾與前衛搖滾元素。' },
+                { title: 'Abbey Road', artist: 'The Beatles', year: 1969, genre: 'Rock', label: 'Apple Records', confidence: 92, cover: '🎸', desc: 'The Beatles 解散前的經典之作。' },
+                { title: 'Kind of Blue', artist: 'Miles Davis', year: 1959, genre: 'Jazz', label: 'Columbia Records', confidence: 94, cover: '🎷', desc: '史上最暢銷的爵士專輯。' }
+            ];
+            const result = mockResults[Math.floor(Math.random() * mockResults.length)];
+            currentRecognition = { ...result, price: Math.round(Math.random() * 50 + 20), value: Math.round(Math.random() * 80 + 30), coverImg: '' };
+            showRecognitionResult();
+        }
+        
+        function addToCollection() {
+            if (!currentRecognition) return;
+            collection.push({ id: Date.now(), ...currentRecognition });
+            saveCollection();
+            alert(`已將「${currentRecognition.title}」加入收藏！`);
+            showTab('collection');
+        }
+        
+        function addToWishlist() {
+            if (!currentRecognition) return;
+            wishlist.push({ id: Date.now(), title: currentRecognition.title, artist: currentRecognition.artist, year: currentRecognition.year, genre: currentRecognition.genre, targetPrice: currentRecognition.value, coverImg: currentRecognition.coverImg });
+            saveWishlist();
+            alert(`已加入願望清單！`);
+        }
+        
+        function editResult() {
+            if (!currentRecognition) return;
+            const title = prompt('唱片名稱:', currentRecognition.title);
+            const artist = prompt('藝人:', currentRecognition.artist);
+            if (title) currentRecognition.title = title;
+            if (artist) currentRecognition.artist = artist;
+            document.getElementById('resultTitle').textContent = currentRecognition.title;
+        }
+        
+        function addManual() {
+            const title = document.getElementById('manualTitle').value.trim();
+            const artist = document.getElementById('manualArtist').value.trim();
+            const year = parseInt(document.getElementById('manualYear').value) || 2000;
+            const genre = document.getElementById('manualGenre').value || 'Rock';
+            const label = document.getElementById('manualLabel').value.trim();
+            const price = parseFloat(document.getElementById('manualPrice').value) || 0;
+            const value = parseFloat(document.getElementById('manualValue').value) || price;
+            
+            if (!title || !artist) { alert('請填寫唱片名稱和藝人'); return; }
+            
+            collection.push({ id: Date.now(), title, artist, year, genre, label, price, value, cover: '🎵', coverImg: '' });
+            saveCollection();
+            alert(`已將「${title}」加入收藏！`);
+            showTab('collection');
+        }
+        
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            ['scan', 'label', 'collection', 'wishlist', 'stats'].forEach(t => document.getElementById(t + 'Tab').style.display = t === tab ? 'block' : 'none');
+            if (tab === 'collection') renderCollection();
+            if (tab === 'wishlist') renderWishlist();
+            if (tab === 'stats') renderStats();
+        }
+        
+        function renderCollection() {
+            const query = document.getElementById('collectionSearch').value.toLowerCase();
+            const filtered = collection.filter(v => v.title.toLowerCase().includes(query) || v.artist.toLowerCase().includes(query));
+            const totalValue = collection.reduce((sum, v) => sum + (v.value || 0), 0);
+            document.getElementById('totalRecords').textContent = collection.length;
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('avgValue').textContent = formatCurrency(collection.length ? totalValue / collection.length : 0);
+            const container = document.getElementById('vinylGrid');
+            container.innerHTML = filtered.map(v => `
+                <div class="vinyl-card">
+                    <div class="vinyl-cover">
+                        ${v.coverImg ? `<img src="${v.coverImg}" alt="${v.title}">` : (v.cover || '🎵')}
+                    </div>
+                    <div class="vinyl-info">
+                        <div class="vinyl-title">${v.title}</div>
+                        <div class="vinyl-artist">${v.artist} · ${v.year}</div>
+                        <div class="vinyl-price">${formatCurrency(v.value)}</div>
+                    </div>
+                </div>
+            `).join('') || '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px;">收藏是空的</p>';
+        }
+        
+        function renderWishlist() {
+            const container = document.getElementById('wishlistContainer');
+            container.innerHTML = wishlist.map(v => `
+                <div class="wishlist-item">
+                    <div class="wishlist-info">
+                        <h4>${v.title}</h4>
+                        <p>${v.artist} · ${v.year} · ${v.genre}</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:#fbbf24;font-weight:bold;">目標: ${formatCurrency(v.targetPrice)}</div>
+                    </div>
+                </div>
+            `).join('') || '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px;">願望清單是空的</p>';
+        }
+        
+        function renderStats() {
+            const genres = {};
+            collection.forEach(v => { genres[v.genre] = (genres[v.genre] || 0) + 1; });
+            new Chart(document.getElementById('genreChart'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(genres), datasets: [{ data: Object.values(genres), backgroundColor: ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#14b8a6', '#f97316'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.7)' } } } }
+            });
+            const sorted = [...collection].sort((a, b) => b.value - a.value).slice(0, 10);
+            new Chart(document.getElementById('valueChart'), {
+                type: 'bar',
+                data: { labels: sorted.map(v => v.title.substring(0, 15)), datasets: [{ label: '價值', data: sorted.map(v => v.value), backgroundColor: '#8b5cf6' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: 'rgba(255,255,255,0.7)' }, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { ticks: { color: 'rgba(255,255,255,0.7)' }, grid: { display: false } } } }
+            });
+        }
+    </script>
+</body>
+</html>

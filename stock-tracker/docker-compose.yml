@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  stock-tracker:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: stock-tracker
+    restart: unless-stopped
+    volumes:
+      - stock-data:/app/data
+      - stock-config:/app/config
+    environment:
+      - TZ=Asia/Taipei
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://stock:stock123@db:5432/stocktracker
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - stock-network
+    env_file:
+      - .env
+
+  db:
+    image: postgres:15-alpine
+    container_name: stock-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=stock
+      - POSTGRES_PASSWORD=stock123
+      - POSTGRES_DB=stocktracker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock -d stocktracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stock-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - stock-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: stock-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - stock-tracker
+    networks:
+      - stock-network
+
+networks:
+  stock-network:
+    driver: bridge
+
+volumes:
+  stock-data:
+  stock-config:
+  pgdata:
+  redis-data:

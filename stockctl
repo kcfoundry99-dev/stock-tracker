@@ -1,0 +1,35 @@
+#!/bin/bash
+echo "🚀 US Stock Server"
+echo "================="
+echo ""
+
+case "$1" in
+    start)
+        cd /Users/kc-openclaw/.openclaw/workspace
+        nohup python3 stock_server.py > /tmp/stock_server.log 2>&1 &
+        echo "✅ 伺服器已啟動"
+        echo "📍 http://localhost:8888"
+        ;;
+    stop)
+        pkill -f stock_server.py
+        echo "⛔ 伺服器已停止"
+        ;;
+    status)
+        if curl -s http://localhost:8888/api > /dev/null 2>&1; then
+            echo "✅ 運行中"
+            curl -s http://localhost:8888/api | python3 -c "import sys,json; d=json.load(sys.stdin); print('💰 總價值: \$' + str(d['total_value'])); print('📈 總獲利: ' + ('+' if d['total_gain_loss']>=0 else '') + str(d['total_gain_loss']) + ' (' + str(d['total_gain_loss_pct']) + '%)'); print('🕐 更新時間: ' + d['last_updated'])"
+        else
+            echo "⛔ 未運行"
+        fi
+        ;;
+    log)
+        tail -20 /tmp/stock_server.log
+        ;;
+    *)
+        echo "使用方法:"
+        echo "  ./stockctl start  - 啟動伺服器"
+        echo "  ./stockctl stop   - 停止伺服器"
+        echo "  ./stockctl status - 查看狀態"
+        echo "  ./stockctl log    - 查看日誌"
+        ;;
+esac

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的股票投資組合</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 32px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tabs { display: flex; gap: 10px; }
+        .tab {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-value { font-size: 28px; font-weight: bold; }
+        .stat-label { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 4px; }
+        .positive { color: #00e676; }
+        .negative { color: #ff1744; }
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h2 { font-size: 22px; margin-bottom: 20px; color: #fff; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(255,255,255,0.05); font-weight: 600; color: rgba(255,255,255,0.8); }
+        th:first-child, td:first-child { text-align: left; }
+        .symbol { font-weight: bold; color: #667eea; font-size: 15px; }
+        .shares { color: rgba(255,255,255,0.8); }
+        .gain-loss { padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+        .gain-loss.pos { background: rgba(0,230,118,0.2); color: #00e676; }
+        .gain-loss.neg { background: rgba(255,23,68,0.2); color: #ff1744; }
+        .chart-container { height: 400px; margin-top: 20px; }
+        .top-movers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .mover-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            border: 11px solid rgba(255,255,255,0.1);
+        }
+        .mover-card h3 { font-size: 16px; margin-bottom: 16px; color: rgba(255,255,255,0.8); }
+        .mover-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .currency-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 我的投資組合</h1>
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('taiwan')">台股</button>
+                <button class="tab" onclick="showTab('us')">美股</button>
+            </div>
+        </div>
+        
+        <!-- 台股 -->
+        <div id="taiwanTab">
+            <div class="top-movers">
+                <div class="mover-card">
+                    <h3>🏆 最佳表現</h3>
+                    <div id="twTopGainers"></div>
+                </div>
+                <div class="mover-card">
+                    <h3>📉 跌幅最大</h3>
+                    <div id="twTopLosers"></div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value positive" id="twTotalValue">$0</div>
+                    <div class="stat-label">總市值</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="twTotalCost">$0</div>
+                    <div class="stat-label">總成本</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value positive" id="twTotalPnl">$0</div>
+                    <div class="stat-label">未實現損益</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value positive" id="twTotalReturn">0%</div>
+                    <div class="stat-label">報酬率</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 台股持股明細</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>名稱</th><th>股數</th><th>均價</th><th>股價</th><th>總成本</th><th>市值</th><th>未實現損益</th><th>報酬率</th></tr>
+                        </thead>
+                        <tbody id="twStockBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🥧 投資配置</h2>
+                <div class="chart-container"><canvas id="twChart"></canvas></div>
+            </div>
+        </div>
+        
+        <!-- 美股 -->
+        <div id="usTab" style="display:none;">
+            <div class="top-movers">
+                <div class="mover-card">
+                    <h3>🏆 最佳表現</h3>
+                    <div id="usTopGainers"></div>
+                </div>
+                <div class="mover-card">
+                    <h3>📉 跌幅最大</h3>
+                    <div id="usTopLosers"></div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value positive" id="usTotalValue">$0</div>
+                    <div class="stat-label">總市值 (USD)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="usTotalCost">$0</div>
+                    <div class="stat-label">總成本</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="usTotalPnl">$0</div>
+                    <div class="stat-label">未實現損益</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="usTotalReturn">0%</div>
+                    <div class="stat-label">報酬率</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 美股持股明細</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>代號</th><th>股數</th><th>均價</th><th>股價</th><th>總成本</th><th>市值</th><th>未實現損益</th><th>報酬率</th></tr>
+                        </thead>
+                        <tbody id="usStockBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 台股資料
+        const twStocks = [
+            { name: '元大台灣50', shares: 1000, avgCost: 49.32, price: 77.20, marketValue: 77200, holdingCost: 49390, unrealizedPnl: 27623, pnlPercent: 55.93 },
+            { name: '富邦台50', shares: 1000, avgCost: 114.05, price: 178.65, marketValue: 178650, holdingCost: 114212, unrealizedPnl: 64006, pnlPercent: 56.04 },
+            { name: '國泰臺灣加權正2', shares: 5000, avgCost: 41.34, price: 63.40, marketValue: 317000, holdingCost: 206992, unrealizedPnl: 109243, pnlPercent: 52.78 },
+            { name: '國泰10Y+金融債', shares: 10000, avgCost: 14.83, price: 16.46, marketValue: 164600, holdingCost: 148510, unrealizedPnl: 15856, pnlPercent: 10.68 },
+            { name: '富喬', shares: 1000, avgCost: 65.20, price: 96.60, marketValue: 96600, holdingCost: 65292, unrealizedPnl: 30882, pnlPercent: 47.30 },
+            { name: '超豐', shares: 2000, avgCost: 93.40, price: 88.60, marketValue: 177200, holdingCost: 187065, unrealizedPnl: -10647, pnlPercent: -5.69 },
+            { name: '泰鼎-KY', shares: 19000, avgCost: 32.81, price: 33.30, marketValue: 632700, holdingCost: 624334, unrealizedPnl: 5582, pnlPercent: 0.89 },
+            { name: '榮科', shares: 6000, avgCost: 53.43, price: 50.20, marketValue: 301200, holdingCost: 321053, unrealizedPnl: -21179, pnlPercent: -6.60 },
+            { name: '德宏', shares: 3000, avgCost: 62.83, price: 163.00, marketValue: 489000, holdingCost: 188767, unrealizedPnl: 298070, pnlPercent: 157.90 }
+        ];
+        
+        // 美股資料
+        const usStocks = [
+            { symbol: 'AVGO', shares: 26, cost: 350.94, price: 340.44 },
+            { symbol: 'BABA', shares: 20, cost: 169.25, price: 166.51 },
+            { symbol: 'CAVA', shares: 40, cost: 62.50, price: 68.93 },
+            { symbol: 'CHYM', shares: 150, cost: 20.40, price: 22.72 },
+            { symbol: 'COIN', shares: 43, cost: 303.37, price: 162.51 },
+            { symbol: 'CRWV', shares: 55, cost: 105.17, price: 95.11 },
+            { symbol: 'EOSE', shares: 200, cost: 11.99, price: 12.22 },
+            { symbol: 'GCL', shares: 2000, cost: 1.07, price: 0.7257 },
+            { symbol: 'GOOG', shares: 8, cost: 322.32, price: 318.63 },
+            { symbol: 'HIMS', shares: 100, cost: 48.10, price: 17.24 },
+            { symbol: 'NVDA', shares: 12, cost: 180.18, price: 188.54 },
+            { symbol: 'ONDS', shares: 350, cost: 8.82, price: 9.68 },
+            { symbol: 'SNPS', shares: 30, cost: 429.06, price: 437.45 },
+            { symbol: 'SOFI', shares: 170, cost: 24.40, price: 21.18 },
+            { symbol: 'TSM', shares: 40, cost: 292.97, price: 361.91 }
+        ];
+        
+        function formatCurrencyTWD(num) {
+            return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(num);
+        }
+        
+        function formatCurrencyUSD(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+        }
+        
+        function showTab(tab) {
+            document.getElementById('taiwanTab').style.display = tab === 'taiwan' ? 'block' : 'none';
+            document.getElementById('usTab').style.display = tab === 'us' ? 'block' : 'none';
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function renderTaiwan() {
+            const tbody = document.getElementById('twStockBody');
+            tbody.innerHTML = '';
+            
+            let totalValue = 0, totalCost = 0, totalPnl = 0;
+            const chartData = [];
+            const sorted = [...twStocks].sort((a, b) => b.pnlPercent - a.pnlPercent);
+            
+            // 最佳表現
+            const topGainers = sorted.filter(s => s.pnlPercent > 0).slice(0, 3);
+            document.getElementById('twTopGainers').innerHTML = topGainers.map(s => `
+                <div class="mover-item"><span>${s.name}</span><span class="gain-loss pos">+${s.pnlPercent.toFixed(2)}%</span></div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無上漲</p>';
+            
+            // 跌幅最大
+            const topLosers = sorted.filter(s => s.pnlPercent < 0).slice(0, 3);
+            document.getElementById('twTopLosers').innerHTML = topLosers.map(s => `
+                <div class="mover-item"><span>${s.name}</span><span class="gain-loss neg">${s.pnlPercent.toFixed(2)}%</span></div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無下跌</p>';
+            
+            twStocks.forEach(s => {
+                totalValue += s.marketValue;
+                totalCost += s.holdingCost;
+                totalPnl += s.unrealizedPnl;
+                chartData.push({ name: s.name, value: s.marketValue });
+                
+                const pnlClass = s.unrealizedPnl >= 0 ? 'pos' : 'neg';
+                const sign = s.unrealizedPnl >= 0 ? '+' : '';
+                
+                tbody.innerHTML += `<tr>
+                    <td class="symbol">${s.name}</td>
+                    <td class="shares">${s.shares}</td>
+                    <td>${formatCurrencyTWD(s.avgCost)}</td>
+                    <td>${formatCurrencyTWD(s.price)}</td>
+                    <td>${formatCurrencyTWD(s.holdingCost)}</td>
+                    <td>${formatCurrencyTWD(s.marketValue)}</td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${formatCurrencyTWD(s.unrealizedPnl)}</span></td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${s.pnlPercent.toFixed(2)}%</span></td>
+                </tr>`;
+            });
+            
+            const totalReturn = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+            
+            document.getElementById('twTotalValue').textContent = formatCurrencyTWD(totalValue);
+            document.getElementById('twTotalCost').textContent = formatCurrencyTWD(totalCost);
+            document.getElementById('twTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + formatCurrencyTWD(totalPnl);
+            document.getElementById('twTotalPnl').className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+            document.getElementById('twTotalReturn').textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
+            document.getElementById('twTotalReturn').className = 'stat-value ' + (totalReturn >= 0 ? 'positive' : 'negative');
+            
+            updateTwChart(chartData);
+        }
+        
+        function renderUS() {
+            const tbody = document.getElementById('usStockBody');
+            tbody.innerHTML = '';
+            
+            let totalValue = 0, totalCost = 0, totalPnl = 0;
+            const chartData = [];
+            const sorted = usStocks.map(s => {
+                const value = s.price * s.shares;
+                const cost = s.cost * s.shares;
+                const pnl = value - cost;
+                const pnlPercent = cost > 0 ? (pnl / cost) * 100 : 0;
+                return { ...s, value, cost, pnl, pnlPercent };
+            }).sort((a, b) => b.pnlPercent - a.pnlPercent);
+            
+            const topGainers = sorted.filter(s => s.pnlPercent > 0).slice(0, 3);
+            document.getElementById('usTopGainers').innerHTML = topGainers.map(s => `
+                <div class="mover-item"><span>${s.symbol}</span><span class="gain-loss pos">+${s.pnlPercent.toFixed(2)}%</span></div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無上漲</p>';
+            
+            const topLosers = sorted.filter(s => s.pnlPercent < 0).slice(0, 3);
+            document.getElementById('usTopLosers').innerHTML = topLosers.map(s => `
+                <div class="mover-item"><span>${s.symbol}</span><span class="gain-loss neg">${s.pnlPercent.toFixed(2)}%</span></div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無下跌</p>';
+            
+            sorted.forEach(s => {
+                totalValue += s.value;
+                totalCost += s.cost;
+                totalPnl += s.pnl;
+                chartData.push({ name: s.symbol, value: s.value });
+                
+                const pnlClass = s.pnl >= 0 ? 'pos' : 'neg';
+                const sign = s.pnl >= 0 ? '+' : '';
+                
+                tbody.innerHTML += `<tr>
+                    <td class="symbol">${s.symbol}</td>
+                    <td class="shares">${s.shares}</td>
+                    <td>${formatCurrencyUSD(s.cost)}</td>
+                    <td>${formatCurrencyUSD(s.price)}</td>
+                    <td>${formatCurrencyUSD(s.cost)}</td>
+                    <td>${formatCurrencyUSD(s.value)}</td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${formatCurrencyUSD(s.pnl)}</span></td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${s.pnlPercent.toFixed(2)}%</span></td>
+                </tr>`;
+            });
+            
+            const totalReturn = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+            
+            document.getElementById('usTotalValue').textContent = formatCurrencyUSD(totalValue);
+            document.getElementById('usTotalCost').textContent = formatCurrencyUSD(totalCost);
+            document.getElementById('usTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + formatCurrencyUSD(totalPnl);
+            document.getElementById('usTotalPnl').className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+            document.getElementById('usTotalReturn').textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
+            document.getElementById('usTotalReturn').className = 'stat-value ' + (totalReturn >= 0 ? 'positive' : 'negative');
+            
+            updateUsChart(chartData);
+        }
+        
+        function updateTwChart(data) {
+            const ctx = document.getElementById('twChart').getContext('2d');
+            data.sort((a, b) => b.value - a.value);
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.value),
+                        backgroundColor: ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7','#fa709a'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#fff', padding: 15, font: { size: 12 } } } }
+                }
+            });
+        }
+        
+        function updateUsChart(data) {
+            // 美股圖表
+        }
+        
+        renderTaiwan();
+        renderUS();
+    </script>
+</body>
+</html>

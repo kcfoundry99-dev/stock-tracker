@@ -1,0 +1,57 @@
+name: VinylVault
+options:
+  bundleIdPrefix: com.vinylvault
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  VinylVault:
+    type: application
+    platform: iOS
+    sources:
+      - path: VinylVault/Sources
+        type: group
+      - path: VinylVault/Resources
+        type: group
+    settings:
+      base:
+        INFOPLIST_FILE: VinylVault/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.vinylvault.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: true
+        ENABLE_PREVIEWS: true
+    info:
+      path: VinylVault/Resources/Info.plist
+      properties:
+        CFBundleName: VinylVault
+        CFBundleDisplayName: Vinyl Vault
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundlePackageType: APPL
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        UILaunchScreen:
+          UIColorName: ""
+          UIImageName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: "VinylVault needs camera access to photograph your vinyl record covers and labels."
+        NSPhotoLibraryUsageDescription: "VinylVault needs photo library access to import images of your vinyl records."

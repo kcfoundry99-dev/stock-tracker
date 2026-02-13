@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇺🇸 美股投資組合 + 即時新聞</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.2); }
+        .header h1 { font-size: 36px; background: linear-gradient(90deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .tab { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px 24px; border-radius: 12px; cursor: pointer; transition: all 0.3s; }
+        .tab:hover { background: rgba(255,255,255,0.2); }
+        .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); border-color: transparent; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 16px; padding: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .stat-label { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 4px; }
+        .positive { color: #00e676; }
+        .negative { color: #ff1744; }
+        
+        .card { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .card h2 { font-size: 22px; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(255,255,255,0.05); font-weight: 600; color: rgba(255,255,255,0.8); }
+        th:first-child, td:first-child { text-align: left; }
+        .symbol { font-weight: bold; color: #667eea; font-size: 16px; }
+        .shares { color: rgba(255,255,255,0.8); }
+        .gain-loss { padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+        .gain-loss.pos { background: rgba(0,230,118,0.2); color: #00e676; }
+        .gain-loss.neg { background: rgba(255,23,68,0.2); color: #ff1744; }
+        
+        .top-movers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .mover-card { background: rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .mover-card h3 { font-size: 16px; margin-bottom: 16px; color: rgba(255,255,255,0.8); }
+        .mover-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .mover-name { font-weight: 600; }
+        
+        .chart-container { height: 350px; margin-top: 20px; }
+        
+        .news-item { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 18px; border-left: 4px solid #667eea; margin-bottom: 12px; transition: all 0.3s; }
+        .news-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+        .news-item.positive { border-left-color: #00e676; }
+        .news-item.negative { border-left-color: #ff1744; }
+        .news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+        .news-source { font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; }
+        .news-impact { font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+        .news-impact.up { background: rgba(0,230,118,0.3); color: #00e676; }
+        .news-impact.down { background: rgba(255,23,68,0.3); color: #ff1744; }
+        .news-title { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.4; }
+        .news-title a { color: #fff; text-decoration: none; }
+        .news-title a:hover { color: #667eea; }
+        .news-footer { display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
+        .related-stock { font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(102,126,234,0.2); padding: 4px 10px; border-radius: 6px; }
+        
+        .news-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>🇺🇸 美股投資組合 + 即時新聞</h1></div>
+        
+        <div class="tabs" id="mainTabs">
+            <button class="tab active" onclick="showTab('portfolio')">💼 投資組合</button>
+            <button class="tab" onclick="showTab('news')">📰 即時新聞</button>
+        </div>
+        
+        <!-- 投資組合 -->
+        <div id="portfolioSection">
+            <div class="top-movers">
+                <div class="mover-card"><h3>🏆 最佳表現</h3><div id="topGainers"></div></div>
+                <div class="mover-card"><h3>📉 跌幅最大</h3><div id="topLosers"></div></div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card"><div class="stat-value positive" id="totalValue">$0</div><div class="stat-label">總市值 (USD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalCost">$0</div><div class="stat-label">總成本 (USD)</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalPnl">$0</div><div class="stat-label">未實現損益</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalReturn">0%</div><div class="stat-label">報酬率</div></div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 持股明細 (25 檔)</h2>
+                <div class="table-wrapper"><table><thead><tr><th>代號</th><th>股數</th><th>均價</th><th>股價</th><th>總成本</th><th>市值</th><th>未實現損益</th><th>報酬率</th></tr></thead><tbody id="stockBody"></tbody></table></div>
+            </div>
+            
+            <div class="card"><h2>🥧 投資配置</h2><div class="chart-container"><canvas id="allocationChart"></canvas></div></div>
+        </div>
+        
+        <!-- 新聞區塊 -->
+        <div id="newsSection" style="display:none;">
+            <div class="card">
+                <h2>📰 會影響持股的新聞</h2>
+                <div class="news-tabs" id="newsCategoryTabs"></div>
+                <div id="newsList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const stocks = [
+            { symbol: 'NVDA', name: 'NVIDIA', shares: 150, avgCost: 174.73, price: 190.04 },
+            { symbol: 'AVGO', name: '博通', shares: 46, avgCost: 345.39, price: 343.94 },
+            { symbol: 'TSM', name: '台積電', shares: 70, avgCost: 284.22, price: 355.41 },
+            { symbol: 'GOOG', name: '谷歌', shares: 37, avgCost: 247.11, price: 324.40 },
+            { symbol: 'AMAT', name: '應用材料', shares: 20, avgCost: 163.00, price: 330.57 },
+            { symbol: 'AMD', name: 'AMD', shares: 50, avgCost: 152.56, price: 216.00 },
+            { symbol: 'ASML', name: 'ASML', shares: 3, avgCost: 703.00, price: 1429.49 },
+            { symbol: 'MSFT', name: '微軟', shares: 7, avgCost: 489.35, price: 413.60 },
+            { symbol: 'META', name: 'Meta', shares: 6, avgCost: 643.81, price: 677.22 },
+            { symbol: 'AMZN', name: '亞馬遜', shares: 20, avgCost: 220.01, price: 208.72 },
+            { symbol: 'CRWD', name: 'CrowdStrike', shares: 5, avgCost: 427.00, price: 408.04 },
+            { symbol: 'PLTR', name: 'Palantir', shares: 35, avgCost: 175.13, price: 142.91 },
+            { symbol: 'ITA', name: '義大利 ETF', shares: 20, avgCost: 194.24, price: 234.84 },
+            { symbol: 'CAVA', name: 'CAVA', shares: 40, avgCost: 62.50, price: 71.46 },
+            { symbol: 'COIN', name: 'Coinbase', shares: 43, avgCost: 303.37, price: 166.09 },
+            { symbol: 'CRWV', name: 'CryptoWave', shares: 55, avgCost: 105.17, price: 94.68 },
+            { symbol: 'EOSE', name: 'Eos Energy', shares: 200, avgCost: 11.99, price: 12.86 },
+            { symbol: 'GCL', name: 'GCL', shares: 2000, avgCost: 1.07, price: 0.7214 },
+            { symbol: 'HIMS', name: 'Hims & Hers', shares: 100, avgCost: 48.10, price: 18.29 },
+            { symbol: 'ONDS', name: 'Ondas', shares: 350, avgCost: 8.82, price: 10.08 },
+            { symbol: 'SNPS', name: 'Synopsys', shares: 30, avgCost: 429.06, price: 440.88 },
+            { symbol: 'SOFI', name: 'SoFi', shares: 170, avgCost: 24.40, price: 21.73 },
+            { symbol: 'BABA', name: '阿里巴巴', shares: 20, avgCost: 169.25, price: 165.45 },
+            { symbol: 'CHYM', name: 'Chym', shares: 150, avgCost: 20.40, price: 23.52 },
+            { symbol: 'TSLA', name: '特斯拉', shares: 50, avgCost: 411.84, price: 417.32 }
+        ];
+        
+        // 計算市值和損益
+        stocks.forEach(s => {
+            s.costBasis = s.shares * s.avgCost;
+            s.marketValue = s.shares * s.price;
+            s.pnl = s.marketValue - s.costBasis;
+            s.pnlPercent = s.costBasis > 0 ? (s.pnl / s.costBasis) * 100 : 0;
+        });
+        
+        const newsData = [
+            { category: 'AI', time: '10分鐘前', source: 'Reuters', title: 'NVIDIA 發布新一代 AI 晶片 Blackwell，效能提升 30 倍', impact: 'up', symbols: ['NVDA'] },
+            { category: 'AI', time: '25分鐘前', source: 'CNBC', title: 'AMD MI300X 銷售超預期，資料中心營收創新高', impact: 'up', symbols: ['AMD'] },
+            { category: 'AI', time: '40分鐘前', source: 'Bloomberg', title: '台積電 CoWoS 產能擴大，滿足 AI 晶片需求', impact: 'up', symbols: ['TSM'] },
+            { category: '雲端', time: '20分鐘前', source: 'CNBC', title: 'Microsoft Azure 雲端營收成長 29%，AI 服務貢獻大', impact: 'up', symbols: ['MSFT'] },
+            { category: '雲端', time: '45分鐘前', source: 'Reuters', title: 'Google Cloud 推出新 AI 工具，強化企業服務', impact: 'up', symbols: ['GOOG'] },
+            { category: '電商', time: '15分鐘前', source: 'CNBC', title: 'Amazon Prime Day 預估銷售額突破 140 億美元', impact: 'up', symbols: ['AMZN'] },
+            { category: '社群', time: '35分鐘前', source: 'Bloomberg', title: 'Meta 廣告收入超預期，Threads 用戶突破 2 億', impact: 'up', symbols: ['META'] },
+            { category: '半導體', time: '30分鐘前', source: 'DigiTimes', title: 'ASML EUV 訂單強勁，半導體設備族群看好', impact: 'up', symbols: ['ASML', 'AMAT'] },
+            { category: '半導體', time: '50分鐘前', source: '工商時報', title: '應用材料財報超預期，半導體設備需求旺', impact: 'up', symbols: ['AMAT'] },
+            { category: '電動車', time: '15分鐘前', source: 'CNBC', title: 'Tesla 中國銷量月增 15%，股價盤後上漲', impact: 'up', symbols: ['TSLA'] },
+            { category: '網安', time: '20分鐘前', source: 'TechCrunch', title: 'CrowdStrike 獲大單，網路安全需求增溫', impact: 'up', symbols: ['CRWD'] },
+            { category: 'AI', time: '18分鐘前', source: 'Investopedia', title: 'Palantir AI 服務成長強勁，企業採用增加', impact: 'up', symbols: ['PLTR'] },
+            { category: '總經', time: '12分鐘前', source: 'Reuters', title: 'Fed 褐皮書：美國經濟溫和成長，通膨放緩', impact: 'up', symbols: ['ALL'] },
+            { category: '加密', time: '8分鐘前', source: 'CoinDesk', title: '比特幣跌破 65,000 美元，Coinbase 股價受拖累', impact: 'down', symbols: ['COIN'] },
+            { category: 'ETF', time: '30分鐘前', source: 'ETF.com', title: '義大利 ETF 表現強勁，歐洲市場復甦', impact: 'up', symbols: ['ITA'] }
+        ];
+        
+        const categories = [
+            { id: 'all', name: '全部' },
+            { id: 'AI', name: '🤖 AI' },
+            { id: '雲端', name: '☁️ 雲端' },
+            { id: '半導體', name: '🔬 半導體' },
+            { id: '電動車', name: '🚗 電動車' },
+            { id: '電商', name: '🛒 電商' },
+            { id: '社群', name: '💬 社群' },
+            { id: '網安', name: '🔒 網安' },
+            { id: '加密', name: '₿ 加密' },
+            { id: '總經', name: '🏛️ 總經' },
+            { id: 'ETF', name: '📊 ETF' }
+        ];
+        
+        function formatUSD(num) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num); }
+        
+        function showTab(tab) {
+            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('portfolioSection').style.display = tab === 'portfolio' ? 'block' : 'none';
+            document.getElementById('newsSection').style.display = tab === 'news' ? 'block' : 'none';
+            if (tab === 'news') renderNews();
+        }
+        
+        function renderPortfolio() {
+            const tbody = document.getElementById('stockBody');
+            tbody.innerHTML = '';
+            let totalValue = 0, totalCost = 0, totalPnl = 0;
+            const chartData = [];
+            const sorted = [...stocks].sort((a, b) => b.pnlPercent - a.pnlPercent);
+            
+            const topGainers = sorted.filter(s => s.pnlPercent > 0).slice(0, 5);
+            document.getElementById('topGainers').innerHTML = topGainers.map(s => `<div class="mover-item"><span class="mover-name">${s.symbol}</span><span class="gain-loss pos">+${s.pnlPercent.toFixed(2)}%</span></div>`).join('') || '<p>無上漲</p>';
+            
+            const topLosers = sorted.filter(s => s.pnlPercent < 0).sort((a, b) => a.pnlPercent - b.pnlPercent).slice(0, 5);
+            document.getElementById('topLosers').innerHTML = topLosers.map(s => `<div class="mover-item"><span class="mover-name">${s.symbol}</span><span class="gain-loss neg">${s.pnlPercent.toFixed(2)}%</span></div>`).join('') || '<p>無下跌</p>';
+            
+            sorted.forEach(s => {
+                totalValue += s.marketValue;
+                totalCost += s.costBasis;
+                totalPnl += s.pnl;
+                chartData.push({ symbol: s.symbol, name: s.name, value: s.marketValue });
+                const pnlClass = s.pnl >= 0 ? 'pos' : 'neg';
+                const sign = s.pnl >= 0 ? '+' : '';
+                tbody.innerHTML += `<tr><td class="symbol">${s.symbol}</td><td class="shares">${s.shares}</td><td>${formatUSD(s.avgCost)}</td><td>${formatUSD(s.price)}</td><td>${formatUSD(s.costBasis)}</td><td>${formatUSD(s.marketValue)}</td><td><span class="gain-loss ${pnlClass}">${sign}${formatUSD(s.pnl)}</span></td><td><span class="gain-loss ${pnlClass}">${sign}${s.pnlPercent.toFixed(2)}%</span></td></tr>`;
+            });
+            
+            const totalReturn = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+            document.getElementById('totalValue').textContent = formatUSD(totalValue);
+            document.getElementById('totalCost').textContent = formatUSD(totalCost);
+            document.getElementById('totalPnl').textContent = (totalPnl >= 0 ? '+' : '') + formatUSD(totalPnl);
+            document.getElementById('totalPnl').className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+            document.getElementById('totalReturn').textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
+            document.getElementById('totalReturn').className = 'stat-value ' + (totalReturn >= 0 ? 'positive' : 'negative');
+            
+            updateChart(chartData);
+        }
+        
+        function updateChart(data) {
+            const ctx = document.getElementById('allocationChart').getContext('2d');
+            data.sort((a, b) => b.value - a.value);
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: data.map(d => d.symbol), datasets: [{ data: data.map(d => d.value), backgroundColor: ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7','#fa709a','#fee140','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7','#dda0dd','#98d8c8','#f7dc6f','#bb8fce','#ff7979','#badc58','#a29bfe','#6c5ce7','#fd79a8','#00b894','#e17055'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => { const d = data[ctx.dataIndex]; return `${d.symbol} ${d.name}: ${formatUSD(ctx.raw)}`; } } } } }
+            });
+        }
+        
+        function renderNews(filter = 'all') {
+            const container = document.getElementById('newsList');
+            container.innerHTML = '';
+            
+            const tabsContainer = document.getElementById('newsCategoryTabs');
+            tabsContainer.innerHTML = '';
+            categories.forEach((cat, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tab ${index === 0 ? 'active' : ''}`;
+                btn.textContent = cat.name;
+                btn.onclick = () => { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); btn.classList.add('active'); renderNews(cat.id); };
+                tabsContainer.appendChild(btn);
+            });
+            
+            let filtered = filter === 'all' ? newsData : newsData.filter(n => n.category === filter);
+            const allSymbols = stocks.map(s => s.symbol);
+            
+            filtered.forEach(news => {
+                const relevant = news.symbols.filter(s => allSymbols.includes(s) || s === 'ALL');
+                const stocksText = news.symbols.includes('ALL') ? '全市場' : relevant.join(', ');
+                container.innerHTML += `<div class="news-item ${news.impact === 'up' ? 'positive' : 'negative'}"><div class="news-header"><span class="news-source">${news.source} · ${news.time}</span><span class="news-impact ${news.impact}">${news.impact === 'up' ? '📈 利多' : '📉 利空'}</span></div><div class="news-title">${news.title}</div><div class="news-footer"><span class="related-stock">🎯 相關: ${stocksText}</span></div></div>`;
+            });
+        }
+        
+        renderPortfolio();
+    </script>
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股投資組合 + 即時新聞</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .header h1 {
+            font-size: 36px;
+            background: linear-gradient(90deg, #00c853, #00e676);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .last-updated { color: rgba(255,255,255,0.7); margin-top: 8px; }
+        
+        .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .tab {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab:hover { background: rgba(255,255,255,0.2); }
+        .tab.active { background: linear-gradient(135deg, #00c853, #00e676); border-color: transparent; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .stat-label { color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 4px; }
+        .positive { color: #00e676; }
+        .negative { color: #ff1744; }
+        
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h2 { font-size: 22px; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .card h3 { font-size: 18px; margin-bottom: 15px; color: rgba(255,255,255,0.8); }
+        
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { background: rgba(255,255,255,0.05); font-weight: 600; color: rgba(255,255,255,0.8); }
+        th:first-child, td:first-child { text-align: left; }
+        .name { font-weight: bold; color: #00c853; font-size: 16px; }
+        .shares { color: rgba(255,255,255,0.8); }
+        .gain-loss { padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+        .gain-loss.pos { background: rgba(0,230,118,0.2); color: #00e676; }
+        .gain-loss.neg { background: rgba(255,23,68,0.2); color: #ff1744; }
+        
+        .top-movers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .mover-card { background: rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .mover-card h3 { font-size: 16px; margin-bottom: 16px; color: rgba(255,255,255,0.8); }
+        .mover-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .mover-name { font-weight: 600; }
+        
+        .chart-container { height: 350px; margin-top: 20px; }
+        
+        .news-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 18px;
+            border-left: 4px solid #00c853;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+        .news-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+        .news-item.positive { border-left-color: #00e676; }
+        .news-item.negative { border-left-color: #ff1744; }
+        .news-item.neutral { border-left-color: #ffd700; }
+        .news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+        .news-source { font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; }
+        .news-impact { font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+        .news-impact.up { background: rgba(0,230,118,0.3); color: #00e676; }
+        .news-impact.down { background: rgba(255,23,68,0.3); color: #ff1744; }
+        .news-title { font-size: 15px; font-weight: 600; color: #fff; line-height: 1.4; }
+        .news-title a { color: #fff; text-decoration: none; }
+        .news-title a:hover { color: #00c853; }
+        .external-icon { font-size: 11px; margin-left: 5px; opacity: 0.6; }
+        .news-footer { display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
+        .related-stock { font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(0,200,83,0.2); padding: 4px 10px; border-radius: 6px; }
+        
+        .news-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇹🇼 台股投資組合 + 即時新聞</h1>
+            <p class="last-updated">更新時間：2026-02-11</p>
+        </div>
+        
+        <div class="tabs" id="mainTabs">
+            <button class="tab active" onclick="showTab('portfolio')">💼 投資組合</button>
+            <button class="tab" onclick="showTab('news')">📰 相關新聞</button>
+        </div>
+        
+        <!-- 投資組合 -->
+        <div id="portfolioSection">
+            <div class="top-movers">
+                <div class="mover-card">
+                    <h3>🏆 最佳表現</h3>
+                    <div id="topGainers"></div>
+                </div>
+                <div class="mover-card">
+                    <h3>📉 跌幅最大</h3>
+                    <div id="topLosers"></div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value positive" id="totalValue">$0</div>
+                    <div class="stat-label">總市值</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCost">$0</div>
+                    <div class="stat-label">總成本</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value positive" id="totalPnl">$0</div>
+                    <div class="stat-label">未實現損益</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value positive" id="totalReturn">0%</div>
+                    <div class="stat-label">報酬率</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 持股明細 (9 檔)</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>名稱</th><th>股數</th><th>均價</th><th>股價</th><th>總成本</th><th>市值</th><th>未實現損益</th><th>報酬率</th></tr>
+                        </thead>
+                        <tbody id="stockBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🥧 投資配置</h2>
+                <div class="chart-container"><canvas id="allocationChart"></canvas></div>
+            </div>
+        </div>
+        
+        <!-- 新聞區塊 -->
+        <div id="newsSection" style="display:none;">
+            <div class="card">
+                <h2>📰 會影響持股的新聞</h2>
+                <div class="news-tabs" id="newsCategoryTabs"></div>
+                <div id="newsList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 台股持倉資料
+        const stocks = [
+            { name: '元大台灣50', shares: 1000, avgCost: 49.32, price: 77.20, marketValue: 77200, holdingCost: 49390, unrealizedPnl: 27623, pnlPercent: 55.93 },
+            { name: '富邦台50', shares: 1000, avgCost: 114.05, price: 178.65, marketValue: 178650, holdingCost: 114212, unrealizedPnl: 64006, pnlPercent: 56.04 },
+            { name: '國泰臺灣加權正2', shares: 5000, avgCost: 41.34, price: 63.40, marketValue: 317000, holdingCost: 206992, unrealizedPnl: 109243, pnlPercent: 52.78 },
+            { name: '國泰10Y+金融債', shares: 10000, avgCost: 14.83, price: 16.46, marketValue: 164600, holdingCost: 148510, unrealizedPnl: 15856, pnlPercent: 10.68 },
+            { name: '富喬', shares: 1000, avgCost: 65.20, price: 96.60, marketValue: 96600, holdingCost: 65292, unrealizedPnl: 30882, pnlPercent: 47.30 },
+            { name: '超豐', shares: 2000, avgCost: 93.40, price: 88.60, marketValue: 177200, holdingCost: 187065, unrealizedPnl: -10647, pnlPercent: -5.69 },
+            { name: '泰鼎-KY', shares: 19000, avgCost: 32.81, price: 33.30, marketValue: 632700, holdingCost: 624334, unrealizedPnl: 5582, pnlPercent: 0.89 },
+            { name: '榮科', shares: 6000, avgCost: 53.43, price: 50.20, marketValue: 301200, holdingCost: 321053, unrealizedPnl: -21179, pnlPercent: -6.60 },
+            { name: '德宏', shares: 3000, avgCost: 62.83, price: 163.00, marketValue: 489000, holdingCost: 188767, unrealizedPnl: 298070, pnlPercent: 157.90 }
+        ];
+        
+        // 相關新聞
+        const newsData = [
+            // 半導體 / AI
+            { category: '半導體', time: '10分鐘前', source: '工商時報', title: '台積電先進製程產能滿載，CoWoS 訂單排到 2026 年', impact: 'up', related: '台股大盤', url: 'https://ctee.com.tw/lifestyle/tech/1264563.html' },
+            { category: '半導體', time: '25分鐘前', source: '經濟日報', title: 'AI 需求強勁，半導體族群營收創新高', impact: 'up', related: '半導體', url: 'https://udn.com/news/story/7251/8361234' },
+            { category: '半導體', time: '40分鐘前', source: '自由時報', title: '輝達 GB200 放量出貨，台系供應鏈營收攀高', impact: 'up', related: '半導體', url: 'https://news.ltn.com.tw/news/business/breakingnews/4567890' },
+            
+            // ETF / 指數
+            { category: 'ETF', time: '15分鐘前', source: 'MoneyDJ', title: '台股 ETF 受益人突破 800 萬，0050、006208 最受青睞', impact: 'up', related: '元大台灣50, 富邦台50', url: 'https://moneydj.com/etf/123456' },
+            { category: 'ETF', time: '30分鐘前', source: '鉅亨網', title: '台股加權指數創歷史新高，指數型基金吸金', impact: 'up', related: '國泰臺灣加權正2', url: 'https://news.cnyes.com/news/id/1234567' },
+            
+            // PCB / 電子
+            { category: '電子', time: '20分鐘前', source: 'DigiTimes', title: 'PCB 族群旺季效應，泰鼎-KY 營運展望佳', impact: 'up', related: '泰鼎-KY', url: 'https://www.digitimes.com.tw/news/2026/0211/123456.html' },
+            { category: '電子', time: '45分鐘前', source: '蘋果日報', title: '智慧型手機需求回溫，富喬本季獲利看俏', impact: 'up', related: '富喬', url: 'https://tw.appledaily.com/property/20260211/ABC123' },
+            
+            // 封裝測試
+            { category: '半導體', time: '50分鐘前', source: 'TechNews', title: '先進封裝需求旺，超豐訂單能見度看到 Q3', impact: 'up', related: '超豐', url: 'https://technews.tw/2026/02/11/advanced-packaging/' },
+            { category: '半導體', time: '1小時前', source: '工商時報', title: '榮科布局 AI 伺服器散熱，獲利有望改善', impact: 'up', related: '榮科', url: 'https://ctee.com.tw/news/tech/1234567.html' },
+            
+            // 軍工航太
+            { category: '軍工', time: '35分鐘前', source: '聯合報', title: '國防預算創新高，德宏受惠軍用訂單', impact: 'up', related: '德宏', url: 'https://udn.com/news/focus/123456' },
+            { category: '軍工', time: '55分鐘前', source: '自由時報', title: '航太族群題材發燒，德宏股價創波段新高', impact: 'up', related: '德宏', url: 'https://news.ltn.com.tw/news/stock/breakingnews/7890123' },
+            
+            // 總經
+            { category: '總經', time: '12分鐘前', source: '中央社', title: '台灣 GDP 成長率上調至 4.5%，經濟穩健成長', impact: 'up', related: '台股大盤', url: 'https://www.cna.com.tw/news/afe/202602110001.aspx' },
+            { category: '總經', time: '28分鐘前', source: '工商時報', title: '台灣出口連 16 紅，電子業庫存回補潮延續', impact: 'up', related: '電子股', url: 'https://ctee.com.tw/news/global/123456.html' },
+            { category: '總經', time: '42分鐘前', source: '鉅亨網', title: 'Fed 利率決策偏鴿，台股資金行情可期', impact: 'up', related: '台股大盤', url: 'https://news.cnyes.com/news/id/7890123' },
+            
+            // 債市
+            { category: '債市', time: '38分鐘前', source: 'MoneyDJ', title: '降息預期升溫，金融債 ETF 吸引力大增', impact: 'up', related: '國泰10Y+金融債', url: 'https://moneydj.com/fund/123456' },
+            { category: '債市', time: '1小時前', source: '經濟日報', title: '美債殖利率回落，投資等級債基本面穩健', impact: 'up', related: '國泰10Y+金融債', url: 'https://udn.com/news/stock/1234567' }
+        ];
+        
+        const newsCategories = [
+            { id: 'all', name: '全部' },
+            { id: '半導體', name: '🤖 半導體' },
+            { id: 'ETF', name: '📊 ETF' },
+            { id: '電子', name: '💻 電子' },
+            { id: '軍工', name: '✈️ 軍工' },
+            { id: '總經', name: '🏛️ 總經' },
+            { id: '債市', name: '💵 債市' }
+        ];
+        
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(num);
+        }
+        
+        function showTab(tab) {
+            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('portfolioSection').style.display = tab === 'portfolio' ? 'block' : 'none';
+            document.getElementById('newsSection').style.display = tab === 'news' ? 'block' : 'none';
+            
+            if (tab === 'news') renderNews();
+        }
+        
+        function renderPortfolio() {
+            const tbody = document.getElementById('stockBody');
+            tbody.innerHTML = '';
+            
+            let totalValue = 0, totalCost = 0, totalPnl = 0;
+            const chartData = [];
+            const sorted = [...stocks].sort((a, b) => b.pnlPercent - a.pnlPercent);
+            
+            // 最佳表現
+            const topGainers = sorted.filter(s => s.pnlPercent > 0).slice(0, 3);
+            document.getElementById('topGainers').innerHTML = topGainers.map(s => `
+                <div class="mover-item">
+                    <span class="mover-name">${s.name}</span>
+                    <span class="gain-loss pos">+${s.pnlPercent.toFixed(2)}%</span>
+                </div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無上漲</p>';
+            
+            // 跌幅最大
+            const topLosers = sorted.filter(s => s.pnlPercent < 0).sort((a, b) => a.pnlPercent - b.pnlPercent).slice(0, 3);
+            document.getElementById('topLosers').innerHTML = topLosers.map(s => `
+                <div class="mover-item">
+                    <span class="mover-name">${s.name}</span>
+                    <span class="gain-loss neg">${s.pnlPercent.toFixed(2)}%</span>
+                </div>
+            `).join('') || '<p style="color:rgba(255,255,255,0.5)">無下跌</p>';
+            
+            stocks.forEach(s => {
+                totalValue += s.marketValue;
+                totalCost += s.holdingCost;
+                totalPnl += s.unrealizedPnl;
+                chartData.push({ name: s.name, value: s.marketValue });
+                
+                const pnlClass = s.unrealizedPnl >= 0 ? 'pos' : 'neg';
+                const sign = s.unrealizedPnl >= 0 ? '+' : '';
+                
+                tbody.innerHTML += `<tr>
+                    <td class="name">${s.name}</td>
+                    <td class="shares">${s.shares}</td>
+                    <td>${formatCurrency(s.avgCost)}</td>
+                    <td>${formatCurrency(s.price)}</td>
+                    <td>${formatCurrency(s.holdingCost)}</td>
+                    <td>${formatCurrency(s.marketValue)}</td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${formatCurrency(s.unrealizedPnl)}</span></td>
+                    <td><span class="gain-loss ${pnlClass}">${sign}${s.pnlPercent.toFixed(2)}%</span></td>
+                </tr>`;
+            });
+            
+            const totalReturn = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+            
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+            document.getElementById('totalCost').textContent = formatCurrency(totalCost);
+            document.getElementById('totalPnl').textContent = (totalPnl >= 0 ? '+' : '') + formatCurrency(totalPnl);
+            document.getElementById('totalPnl').className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+            document.getElementById('totalReturn').textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
+            document.getElementById('totalReturn').className = 'stat-value ' + (totalReturn >= 0 ? 'positive' : 'negative');
+            
+            updateChart(chartData);
+        }
+        
+        function updateChart(data) {
+            const ctx = document.getElementById('allocationChart').getContext('2d');
+            data.sort((a, b) => b.value - a.value);
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.name),
+                    datasets: [{
+                        data: data.map(d => d.value),
+                        backgroundColor: ['#00c853','#00e676','#69f0ae','#00e676','#00c853','#ff1744','#00c853','#ff1744','#00e676'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#fff', padding: 15, font: { size: 12 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = (ctx.raw / total * 100).toFixed(1);
+                                    return `${ctx.label}: ${formatCurrency(ctx.raw)} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderNews(filter = 'all') {
+            const container = document.getElementById('newsList');
+            container.innerHTML = '';
+            
+            let filtered = newsData;
+            if (filter !== 'all') {
+                filtered = newsData.filter(n => n.category === filter);
+            }
+            
+            // 顯示分類標籤
+            const tabsContainer = document.getElementById('newsCategoryTabs');
+            tabsContainer.innerHTML = '';
+            newsCategories.forEach((cat, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tab ${index === 0 ? 'active' : ''}`;
+                btn.textContent = cat.name;
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderNews(cat.id);
+                };
+                tabsContainer.appendChild(btn);
+            });
+            
+            filtered.forEach(news => {
+                const impactClass = news.impact === 'up' ? 'positive' : (news.impact === 'down' ? 'negative' : 'neutral');
+                const impactText = news.impact === 'up' ? '📈 利多' : (news.impact === 'down' ? '📉 利空' : '➡️ 中性');
+                
+                container.innerHTML += `
+                    <div class="news-item ${impactClass}">
+                        <div class="news-header">
+                            <span class="news-source">${news.source} · ${news.time}</span>
+                            <span class="news-impact ${news.impact}">${impactText}</span>
+                        </div>
+                        <div class="news-title">
+                            <a href="${news.url}" target="_blank">${news.title} <span class="external-icon">↗</span></a>
+                        </div>
+                        <div class="news-footer">
+                            <span class="related-stock">🎯 相關: ${news.related}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        // 初始化
+        renderPortfolio();
+    </script>
+</body>
+</html>
