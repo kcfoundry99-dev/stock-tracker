@@ -1,0 +1,106 @@
+[
+  {
+    "symbol": "1321JP",
+    "shares": 14.0
+  },
+  {
+    "symbol": "ITA",
+    "shares": 20.0
+  },
+  {
+    "symbol": "AMAT",
+    "shares": 20.0
+  },
+  {
+    "symbol": "AMD",
+    "shares": 50.0
+  },
+  {
+    "symbol": "AMZN",
+    "shares": 20.0
+  },
+  {
+    "symbol": "ASML",
+    "shares": 3.0
+  },
+  {
+    "symbol": "AVGO",
+    "shares": 26.0
+  },
+  {
+    "symbol": "BABA",
+    "shares": 20.0
+  },
+  {
+    "symbol": "CAVA",
+    "shares": 40.0
+  },
+  {
+    "symbol": "CHYM",
+    "shares": 150.0
+  },
+  {
+    "symbol": "COIN",
+    "shares": 43.0
+  },
+  {
+    "symbol": "CRWV",
+    "shares": 55.0
+  },
+  {
+    "symbol": "CRWD",
+    "shares": 5.0
+  },
+  {
+    "symbol": "EOSE",
+    "shares": 200.0
+  },
+  {
+    "symbol": "GCL",
+    "shares": 2000.0
+  },
+  {
+    "symbol": "GOOG",
+    "shares": 29.0
+  },
+  {
+    "symbol": "HIMS",
+    "shares": 100.0
+  },
+  {
+    "symbol": "META",
+    "shares": 6.0
+  },
+  {
+    "symbol": "MSFT",
+    "shares": 7.0
+  },
+  {
+    "symbol": "NVDA",
+    "shares": 138.0
+  },
+  {
+    "symbol": "ONDS",
+    "shares": 350.0
+  },
+  {
+    "symbol": "PLTR",
+    "shares": 35.0
+  },
+  {
+    "symbol": "SNPS",
+    "shares": 30.0
+  },
+  {
+    "symbol": "SOFI",
+    "shares": 170.0
+  },
+  {
+    "symbol": "TSLA",
+    "shares": 50.0
+  },
+  {
+    "symbol": "TSM",
+    "shares": 40.0
+  }
+]
