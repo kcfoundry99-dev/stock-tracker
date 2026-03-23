@@ -4,234 +4,281 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache" />
-    <title>📈 股票追蹤儀表板</title>
+    <meta name="theme-color" content="#000000">
+    <title>股票</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --apple-bg: #000000;
+            --apple-card: #1c1c1e;
+            --apple-secondary: #2c2c2e;
+            --apple-tertiary: #3a3a3c;
+            --apple-green: #30d158;
+            --apple-red: #ff453a;
+            --apple-blue: #0a84ff;
+            --apple-orange: #ff9f0a;
+            --apple-text: #ffffff;
+            --apple-text-secondary: #8e8e93;
+            --apple-text-tertiary: #636366;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: 'Noto Sans TC', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background: var(--apple-bg);
+            color: var(--apple-text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
-        .gradient-bg {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+
+        /* Apple-style Cards */
+        .apple-card {
+            background: var(--apple-card);
+            border-radius: 12px;
+            overflow: hidden;
         }
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .apple-list {
+            background: var(--apple-card);
+            border-radius: 12px;
         }
-        .positive { color: #10b981; }
-        .negative { color: #ef4444; }
-        .neutral { color: #6b7280; }
-        .glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
-        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+
+        .apple-list-item {
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--apple-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .apple-list-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Apple Buttons */
+        .apple-btn {
+            background: var(--apple-blue);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            -webkit-user-select: none;
+        }
+
+        .apple-btn:active {
+            opacity: 0.7;
+        }
+
+        /* Price Colors */
+        .price-up { color: var(--apple-green); }
+        .price-down { color: var(--apple-red); }
+        .price-neutral { color: var(--apple-text-secondary); }
+
+        /* Segment Control */
+        .segment {
+            display: flex;
+            background: var(--apple-secondary);
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .segment-item {
+            flex: 1;
+            padding: 8px 16px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--apple-text-secondary);
+            transition: all 0.2s;
+        }
+
+        .segment-item.active {
+            background: var(--apple-card);
+            color: var(--apple-text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Mini Chart */
+        .mini-chart {
+            width: 80px;
+            height: 30px;
+        }
+
+        /* Ticker */
+        .ticker-symbol {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .ticker-name {
+            font-size: 12px;
+            color: var(--apple-text-secondary);
+        }
+
+        /* Header */
+        .header-title {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .header-subtitle {
+            font-size: 15px;
+            color: var(--apple-text-secondary);
+        }
+
+        /* Portfolio Card */
+        .portfolio-value {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .portfolio-change {
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        /* News */
+        .news-source {
+            font-size: 12px;
+            color: var(--apple-text-tertiary);
+        }
+
+        .news-time {
+            font-size: 12px;
+            color: var(--apple-text-tertiary);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+        
+        /* Safe Area */
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-white">
+<body class="pb-6">
     <!-- Header -->
-    <header class="border-b border-gray-700/50">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <span class="text-3xl">📈</span>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                    股票追蹤儀表板
-                </h1>
+    <header class="px-4 pt-12 pb-4">
+        <div class="flex justify-between items-end mb-2">
+            <div>
+                <h1 class="header-title">我的持股</h1>
+                <p class="header-subtitle" id="lastUpdate">—</p>
             </div>
-            <div class="flex items-center gap-4">
-                <span id="lastUpdate" class="text-sm text-gray-400"></span>
-                <button onclick="refreshAll()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    重新整理
-                </button>
+            <button onclick="refreshAll()" class="apple-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Portfolio Value -->
+        <div class="apple-card p-4 mt-4">
+            <div class="text-sm text-[#8e8e93] mb-1">總市值</div>
+            <div class="portfolio-value" id="totalValue">—</div>
+            <div class="portfolio-change mt-1" id="totalChange">
+                <span id="totalProfitLoss">—</span>
+                <span class="ml-2" id="totalPercent">—</span>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-3 gap-2 mt-3">
+            <div class="apple-card p-3 text-center">
+                <div class="text-xs text-[#8e8e93]">總成本</div>
+                <div class="font-semibold mt-1" id="totalCost">—</div>
+            </div>
+            <div class="apple-card p-3 text-center">
+                <div class="text-xs text-[#8e8e93]">檔數</div>
+                <div class="font-semibold mt-1" id="stockCount">—</div>
+            </div>
+            <div class="apple-card p-3 text-center">
+                <div class="text-xs text-[#8e8e93]">漲跌</div>
+                <div class="font-semibold mt-1" id="totalChangePercent">—</div>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-6">
-        <!-- Portfolio Summary -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                <span>💰</span> 投資組合總覽
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="card rounded-xl p-6">
-                    <div class="text-gray-400 text-sm">總市值</div>
-                    <div class="text-3xl font-bold mt-2" id="totalValue">-</div>
-                </div>
-                <div class="card rounded-xl p-6">
-                    <div class="text-gray-400 text-sm">總成本</div>
-                    <div class="text-3xl font-bold mt-2" id="totalCost">-</div>
-                </div>
-                <div class="card rounded-xl p-6">
-                    <div class="text-gray-400 text-sm">未實現損益</div>
-                    <div class="text-3xl font-bold mt-2" id="totalProfitLoss">-</div>
-                </div>
-                <div class="card rounded-xl p-6">
-                    <div class="text-gray-400 text-sm">報酬率</div>
-                    <div class="text-3xl font-bold mt-2" id="totalPercent">-</div>
-                </div>
+    <main class="px-4">
+        <!-- Charts -->
+        <section class="mb-4">
+            <div class="apple-card p-4">
+                <h3 class="text-sm font-semibold text-[#8e8e93] mb-3">部位分布</h3>
+                <div id="allocationChart" class="h-40"></div>
             </div>
         </section>
 
-        <!-- Charts Row -->
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Portfolio Distribution -->
-            <div class="card rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4">📊 部位分布</h3>
-                <div id="allocationChart" class="h-64"></div>
+        <!-- Watchlist -->
+        <section class="mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-[#8e8e93]">持股明細</h3>
             </div>
-            <!-- Performance Chart -->
-            <div class="card rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4">📈 報酬率分布</h3>
-                <div id="performanceChart" class="h-64"></div>
+            <div class="apple-list" id="stockTable">
+                <!-- Stocks will be inserted here -->
             </div>
         </section>
 
-        <!-- Recommendations -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                <span>🎯</span> 買賣建議
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="card rounded-xl p-4 border-l-4 border-green-500">
-                    <div class="flex justify-between items-center">
-                        <span class="text-green-400 font-semibold">買入 (BUY)</span>
-                        <span class="text-2xl font-bold" id="buyCount">0</span>
-                    </div>
-                </div>
-                <div class="card rounded-xl p-4 border-l-4 border-yellow-500">
-                    <div class="flex justify-between items-center">
-                        <span class="text-yellow-400 font-semibold">持有 (HOLD)</span>
-                        <span class="text-2xl font-bold" id="holdCount">0</span>
-                    </div>
-                </div>
-                <div class="card rounded-xl p-4 border-l-4 border-red-500">
-                    <div class="flex justify-between items-center">
-                        <span class="text-red-400 font-semibold">賣出 (SELL)</span>
-                        <span class="text-2xl font-bold" id="sellCount">0</span>
-                    </div>
-                </div>
+        <!-- Top Performers -->
+        <section class="mb-4">
+            <h3 class="text-sm font-semibold text-[#8e8e93] mb-3">漲幅排行</h3>
+            <div class="grid grid-cols-2 gap-2" id="topPerformers">
+                <!-- Top performers will be inserted here -->
             </div>
         </section>
 
-        <!-- Stock List -->
-        <section class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold flex items-center gap-2">
-                    <span>📋</span> 持股明細
-                </h2>
-                <button onclick="showAddModal()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2 transition">
-                    <span>+</span> 新增持股
-                </button>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="text-left text-gray-400 border-b border-gray-700">
-                            <th class="pb-3">股票</th>
-                            <th class="pb-3">股數</th>
-                            <th class="pb-3">平均成本</th>
-                            <th class="pb-3">現價</th>
-                            <th class="pb-3">市值</th>
-                            <th class="pb-3">損益</th>
-                            <th class="pb-3">報酬率</th>
-                            <th class="pb-3">建議</th>
-                            <th class="pb-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="stockTable">
-                        <tr><td colspan="9" class="py-8 text-center text-gray-500">載入中...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Top/Bottom Performers -->
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Top Performers -->
-            <div class="card rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span>🏆</span> 表現最佳
-                </h3>
-                <div id="topPerformers" class="space-y-3">
-                    <p class="text-gray-500">載入中...</p>
-                </div>
-            </div>
-            <!-- Bottom Performers -->
-            <div class="card rounded-xl p-6">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span>⚠️</span> 需要關注
-                </h3>
-                <div id="bottomPerformers" class="space-y-3">
-                    <p class="text-gray-500">載入中...</p>
-                </div>
+        <!-- News -->
+        <section class="mb-4">
+            <h3 class="text-sm font-semibold text-[#8e8e93] mb-3">相關新聞</h3>
+            <div class="space-y-2" id="newsContainer">
+                <!-- News will be inserted here -->
             </div>
         </section>
     </main>
 
-    <!-- Add Stock Modal -->
-    <div id="addModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="card rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-semibold mb-4">新增持股</h3>
-            <form id="addForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">股票代碼</label>
-                    <input type="text" id="stockSymbol" class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg" placeholder="例如: 2330, AAPL">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">股數</label>
-                    <input type="number" id="stockShares" class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg" placeholder="例如: 1000">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">平均成本</label>
-                    <input type="number" step="0.01" id="stockCost" class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg" placeholder="例如: 500">
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="hideAddModal()" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">取消</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition">新增</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Stock Detail Modal -->
-    <div id="detailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="card rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h3 class="text-xl font-semibold" id="detailSymbol">-</h3>
-                    <p class="text-gray-400" id="detailName">-</p>
-                </div>
-                <button onclick="hideDetailModal()" class="text-gray-400 hover:text-white">✕</button>
-            </div>
-            <div id="detailChart" class="h-64 mb-4"></div>
-            <div id="detailMetrics" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-        </div>
-    </div>
-
     <script>
-        // API Base URL
         const API_BASE = './data';
         const HAS_BACKEND = false;
         const cacheBust = () => `?t=${Date.now()}`;
 
-        // State
         let portfolioData = null;
         let positions = [];
+        let currentView = 'all'; // 'all' or 'gainers' or 'losers'
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadPortfolio();
             loadPositions();
-            loadRecommendations();
+            loadNews();
         });
 
-        // Load Portfolio Summary
         async function loadPortfolio() {
             try {
                 const response = await fetch(`${API_BASE}/portfolio_summary.json${cacheBust()}`);
@@ -242,412 +289,205 @@
             }
         }
 
-        // Load Positions
         async function loadPositions() {
             try {
                 const response = await fetch(`${API_BASE}/positions.json${cacheBust()}`);
                 const data = await response.json();
                 positions = data.positions || [];
-                updateTable();
-                loadTopBottom();
+                updateStockList();
+                updateTopPerformers();
                 updateCharts();
             } catch (error) {
                 console.error('Error loading positions:', error);
             }
         }
 
-        // Load Recommendations
-        async function loadRecommendations() {
+        async function loadNews() {
             try {
-                const response = await fetch(`${API_BASE}/recommendations.json${cacheBust()}`);
+                const response = await fetch(`${API_BASE}/news.json${cacheBust()}`);
                 const data = await response.json();
-                document.getElementById('buyCount').textContent = data.summary.buy_count;
-                document.getElementById('holdCount').textContent = data.summary.hold_count;
-                document.getElementById('sellCount').textContent = data.summary.sell_count;
+                updateNews(data.news || []);
             } catch (error) {
-                console.error('Error loading recommendations:', error);
+                console.error('Error loading news:', error);
             }
         }
 
-        // Update Summary
+        function formatCurrency(num, currency = 'USD') {
+            if (num === null || num === undefined || isNaN(num)) return '—';
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency,
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+
         function updateSummary() {
             if (!portfolioData) return;
             
-            const fmtCurrency = (num, currency = 'USD', locale = 'en-US') => {
-                if (num === null || num === undefined || Number.isNaN(num)) {
-                    return '—';
-                }
-                return new Intl.NumberFormat(locale, {
-                    style: 'currency',
-                    currency,
-                    minimumFractionDigits: 0
-                }).format(num);
-            };
+            const valueUSD = portfolioData.total_value_usd || portfolioData.total_value || 0;
+            const profitUSD = portfolioData.total_profit_loss_usd || portfolioData.total_profit_loss || 0;
+            const percent = portfolioData.total_profit_loss_percent || 0;
+            const costUSD = portfolioData.total_cost_usd || portfolioData.total_cost || 0;
             
-            const valueUSD = portfolioData.total_value_usd ?? portfolioData.total_value;
-            const valueTWD = portfolioData.total_value_twd;
-            const costUSD = portfolioData.total_cost_usd ?? portfolioData.total_cost;
-            const costTWD = portfolioData.total_cost_twd;
-            const profitUSD = portfolioData.total_profit_loss_usd ?? portfolioData.total_profit_loss;
-            const profitTWD = portfolioData.total_profit_loss_twd;
-            const percent = portfolioData.total_profit_loss_percent ?? 0;
+            // Main value
+            document.getElementById('totalValue').textContent = formatCurrency(valueUSD);
             
-            document.getElementById('totalValue').innerHTML = `${fmtCurrency(valueUSD, 'USD', 'en-US')}<div class="text-sm text-gray-400">≈ ${fmtCurrency(valueTWD, 'TWD', 'zh-TW')}</div>`;
-            document.getElementById('totalCost').innerHTML = `${fmtCurrency(costUSD, 'USD', 'en-US')}<div class="text-sm text-gray-400">≈ ${fmtCurrency(costTWD, 'TWD', 'zh-TW')}</div>`;
+            // Change
+            const changeEl = document.getElementById('totalProfitLoss');
+            const percentEl = document.getElementById('totalPercent');
+            const isPositive = profitUSD >= 0;
             
-            const plEl = document.getElementById('totalProfitLoss');
-            const pctEl = document.getElementById('totalPercent');
+            changeEl.textContent = `${isPositive ? '+' : ''}${formatCurrency(profitUSD)}`;
+            changeEl.className = `portfolio-change ${isPositive ? 'price-up' : 'price-down'}`;
             
-            const profitPrefix = profitUSD >= 0 ? '+' : '';
-            plEl.innerHTML = `${profitPrefix}${fmtCurrency(profitUSD, 'USD', 'en-US')}<div class="text-sm text-gray-400">≈ ${fmtCurrency(profitTWD, 'TWD', 'zh-TW')}</div>`;
-            plEl.className = `text-3xl font-bold mt-2 ${profitUSD >= 0 ? 'positive' : 'negative'}`;
+            percentEl.textContent = `(${isPositive ? '+' : ''}${percent.toFixed(2)}%)`;
+            percentEl.className = `ml-2 ${isPositive ? 'price-up' : 'price-down'}`;
             
-            pctEl.textContent = `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}%`;
-            pctEl.className = `text-3xl font-bold mt-2 ${percent >= 0 ? 'positive' : 'negative'}`;
+            // Quick stats
+            document.getElementById('totalCost').textContent = formatCurrency(costUSD);
+            document.getElementById('stockCount').textContent = positions.length;
             
-            document.getElementById('lastUpdate').textContent = 
-                `更新時間: ${new Date(portfolioData.updated_at).toLocaleString('zh-TW')}`;
+            const changePercentEl = document.getElementById('totalChangePercent');
+            changePercentEl.textContent = `${isPositive ? '+' : ''}${percent.toFixed(2)}%`;
+            changePercentEl.className = `font-semibold mt-1 ${isPositive ? 'price-up' : 'price-down'}`;
+            
+            // Last update
+            if (portfolioData.updated_at) {
+                const date = new Date(portfolioData.updated_at);
+                document.getElementById('lastUpdate').textContent = date.toLocaleString('zh-TW', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
         }
 
-        // Update Charts
-        function updateCharts() {
-            if (!portfolioData) return;
-            
-            // Allocation Chart
-            const allocationData = portfolioData.by_recommendation || {};
-            const labels = Object.keys(allocationData).map(k => {
-                const map = {BUY: '買入', HOLD: '持有', SELL: '賣出', STRONG_BUY: '強力買入', STRONG_SELL: '強力賣出'};
-                return map[k] || k;
-            });
-            const values = Object.values(allocationData).map(v => v.value || 0);
-            
-            new ApexCharts(document.querySelector("#allocationChart"), {
-                series: values.length ? values : [1],
-                labels: values.length ? labels : ['無資料'],
-                chart: {
-                    type: 'donut',
-                    height: 250,
-                    background: 'transparent',
-                    foreColor: '#9ca3af'
-                },
-                colors: values.length ? 
-                    ['#10b981', '#f59e0b', '#ef4444', '#22c55e', '#dc2626'] : 
-                    ['#374151'],
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            size: '70%',
-                            labels: {
-                                show: true,
-                                total: {
-                                    show: true,
-                                    label: '總價值',
-                                    formatter: () => {
-                                        const total = values.reduce((a, b) => a + b, 0);
-                                        return new Intl.NumberFormat('zh-TW', {
-                                            style: 'currency',
-                                            currency: 'TWD',
-                                            notation: 'compact'
-                                        }).format(total);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                legend: {
-                    position: 'bottom'
-                },
-                dataLabels: { enabled: false },
-                stroke: { show: false }
-            }).render();
-            
-            // Performance Chart
-            const posWithPL = positions
-                .filter(p => typeof p.profit_loss_percent === 'number')
-                .sort((a, b) => (b.profit_loss_percent ?? 0) - (a.profit_loss_percent ?? 0));
-            
-            const symbols = posWithPL.slice(0, 10).map(p => p.stock?.symbol || p.symbol);
-            const percents = posWithPL.slice(0, 10).map(p => p.profit_loss_percent);
-            const colors = percents.map(p => p >= 0 ? '#10b981' : '#ef4444');
-            
-            new ApexCharts(document.querySelector("#performanceChart"), {
-                series: [{ data: percents.length ? percents : [0] }],
-                chart: {
-                    type: 'bar',
-                    height: 250,
-                    background: 'transparent',
-                    foreColor: '#9ca3af'
-                },
-                plotOptions: {
-                    bar: {
-                        borderRadius: 4,
-                        horizontal: true,
-                        distributed: true
-                    }
-                },
-                colors: colors.length ? colors : ['#374151'],
-                xaxis: {
-                    categories: symbols.length ? symbols : ['無資料'],
-                    labels: {
-                        formatter: (v) => `${v.toFixed(1)}%`
-                    }
-                },
-                yaxis: { labels: { formatter: (v) => v } },
-                legend: { show: false },
-                grid: { borderColor: '#374151' },
-                dataLabels: {
-                    enabled: true,
-                    formatter: (val) => `${val.toFixed(1)}%`,
-                    style: { colors: ['#000'] }
-                }
-            }).render();
-        }
-
-        // Update Table
-        function updateTable() {
-            const tbody = document.getElementById('stockTable');
+        function updateStockList() {
+            const container = document.getElementById('stockTable');
             
             if (positions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-gray-500">尚無持股資料</td></tr>';
+                container.innerHTML = '<div class="p-4 text-center text-[#8e8e93]">尚無持股資料</div>';
                 return;
             }
+
+            // Sort by market value
+            const sorted = [...positions].sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
             
-            tbody.innerHTML = positions.map(p => {
-                const stock = p.stock || {};
-                const symbol = stock.symbol || p.symbol || '?';
-                const name = stock.name || '';
+            container.innerHTML = sorted.map(p => {
                 const hasPL = typeof p.profit_loss === 'number';
                 const hasPLPct = typeof p.profit_loss_percent === 'number';
                 const pl = hasPL ? p.profit_loss : 0;
                 const plPct = hasPLPct ? p.profit_loss_percent : 0;
-                const plClass = hasPL ? (pl >= 0 ? 'positive' : 'negative') : 'neutral';
-                const recClass = {
-                    'BUY': 'bg-green-500/20 text-green-400',
-                    'HOLD': 'bg-yellow-500/20 text-yellow-400',
-                    'SELL': 'bg-red-500/20 text-red-400',
-                    'STRONG_BUY': 'bg-green-500/20 text-green-400 border border-green-500',
-                    'STRONG_SELL': 'bg-red-500/20 text-red-400 border border-red-500'
-                }[p.recommendation] || 'bg-gray-500/20 text-gray-400';
-                
-                const recText = {
-                    'BUY': '買入',
-                    'HOLD': '持有',
-                    'SELL': '賣出',
-                    'STRONG_BUY': '強力買入',
-                    'STRONG_SELL': '強力賣出'
-                }[p.recommendation] || p.recommendation || '-';
+                const isPositive = pl >= 0;
                 
                 return `
-                    <tr class="border-b border-gray-800 hover:bg-white/5 transition">
-                        <td class="py-3">
-                            <div class="font-semibold">${symbol}</div>
-                            <div class="text-sm text-gray-500">${name}</div>
-                        </td>
-                        <td class="py-3">${p.shares?.toLocaleString() || '-'}</td>
-                        <td class="py-3">${p.avg_cost ? '$' + p.avg_cost.toFixed(2) : '-'}</td>
-                        <td class="py-3 font-semibold">${p.current_price ? '$' + p.current_price.toFixed(2) : '-'}</td>
-                        <td class="py-3">${p.current_value ? '$' + p.current_value.toLocaleString() : '-'}</td>
-                        <td class="py-3 ${plClass}">${hasPL ? `${pl >= 0 ? '+' : ''}$${pl.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-'}</td>
-                        <td class="py-3 ${plClass}">${hasPLPct ? `${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%` : '-'}</td>
-                        <td class="py-3">
-                            <span class="px-2 py-1 rounded text-xs font-semibold ${recClass}">${recText}</span>
-                        </td>
-                        <td class="py-3">
-                            <button onclick="showDetail('${symbol}')" class="text-blue-400 hover:text-blue-300">詳細</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // Load Top/Bottom Performers
-        async function loadTopBottom() {
-            if (positions.length === 0) return;
-            
-            const sorted = [...positions].sort((a, b) => (b.profit_loss_percent || 0) - (a.profit_loss_percent || 0));
-            
-            // Top 5
-            const top5 = sorted.slice(0, 5);
-            document.getElementById('topPerformers').innerHTML = top5.map((p, i) => {
-                const stock = p.stock || {};
-                const pl = p.profit_loss_percent || 0;
-                const price = p.current_price || 0;
-                return `
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div class="apple-list-item">
                         <div class="flex items-center gap-3">
-                            <span class="text-lg">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]}</span>
+                            <div class="w-10 h-10 rounded-lg bg-[#2c2c2e] flex items-center justify-center text-sm font-semibold">
+                                ${p.symbol.slice(0, 2)}
+                            </div>
                             <div>
-                                <div class="font-semibold">${stock.symbol || '-'}</div>
-                                <div class="text-sm text-gray-500">$${price.toFixed(2)}</div>
+                                <div class="ticker-symbol">${p.symbol}</div>
+                                <div class="ticker-name">${p.shares} 股</div>
                             </div>
                         </div>
-                        <div class="text-green-400 font-bold">+${pl.toFixed(2)}%</div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Bottom 5
-            const bottom5 = sorted.slice(-5).reverse();
-            document.getElementById('bottomPerformers').innerHTML = bottom5.map((p, i) => {
-                const stock = p.stock || {};
-                const pl = p.profit_loss_percent || 0;
-                const price = p.current_price || 0;
-                return `
-                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">${i + 1}️⃣</span>
-                            <div>
-                                <div class="font-semibold">${stock.symbol || '-'}</div>
-                                <div class="text-sm text-gray-500">$${price.toFixed(2)}</div>
+                        <div class="text-right">
+                            <div class="font-semibold">${formatCurrency(p.current_value)}</div>
+                            <div class="text-xs ${isPositive ? 'price-up' : 'price-down'}">
+                                ${hasPLPct ? `${isPositive ? '+' : ''}${plPct.toFixed(2)}%` : '—'}
                             </div>
                         </div>
-                        <div class="${pl >= 0 ? 'text-green-400' : 'text-red-400'} font-bold">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}%</div>
                     </div>
                 `;
             }).join('');
         }
 
-        // Refresh All
+        function updateTopPerformers() {
+            const container = document.getElementById('topPerformers');
+            
+            if (positions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const sorted = [...positions]
+                .filter(p => typeof p.profit_loss_percent === 'number')
+                .sort((a, b) => (b.profit_loss_percent || 0) - (a.profit_loss_percent || 0));
+
+            const top3 = sorted.slice(0, 3);
+            const bottom3 = sorted.slice(-3).reverse();
+
+            let html = '<div class="space-y-2">';
+            
+            // Top gainers
+            html += '<div class="text-xs text-[#8e8e93] mb-1">最佳表現</div>';
+            top3.forEach(p => {
+                const pl = p.profit_loss_percent || 0;
+                html += `
+                    <div class="apple-card p-3 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold">${p.symbol}</span>
+                        </div>
+                        <span class="price-up text-sm font-semibold">+${pl.toFixed(2)}%</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div><div class="space-y-2 mt-3">';
+            
+            // Worst performers
+            html += '<div class="text-xs text-[#8e8e93] mb-1">需要關注</div>';
+            bottom3.forEach(p => {
+                const pl = p.profit_loss_percent || 0;
+                const isPositive = pl >= 0;
+                html += `
+                    <div class="apple-card p-3 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold">${p.symbol}</span>
+                        </div>
+                        <span class="${isPositive ? 'price-up' : 'price-down'} text-sm font-semibold">
+                            ${isPositive ? '+' : ''}${pl.toFixed(2)}%
+                        </span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function updateNews(news) {
+            const container = document.getElementById('newsContainer');
+            
+            if (!news || news.length === 0) {
+                container.innerHTML = '<div class="text-[#8e8e93] text-center py-4">暫無新聞</div>';
+                return;
+            }
+
+            container.innerHTML = news.slice(0, 5).map(item => {
+                const date = item.pubDate ? new Date(item.pubDate) : null;
+                const timeStr = date ? date.toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                
+                return `
+                    <a href="${item.url || '#'}" target="_blank" class="apple-card p-3 block">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="apple-btn text-xs py-1 px-2">${item.ticker}</span>
+                            <span class="news-time">${timeStr}</span>
+                        </div>
+                        <div class="text-sm font-medium mb-1 line-clamp-2">${item.title || 'No title'}</div>
+                        <div class="text-xs text-[#8e8e93] line-clamp-1">${item.publisher || ''}</div>
+                    </a>
+                `;
+            }).join('');
+        }
+
         async function refreshAll() {
-            if (!HAS_BACKEND) {
-                loadPortfolio();
-                loadPositions();
-                loadRecommendations();
-                return;
-            }
-            try {
-                await fetch(`${API_BASE}/portfolio/update`, { method: 'POST' });
-                loadPortfolio();
-                loadPositions();
-                loadRecommendations();
-            } catch (error) {
-                console.error('Error refreshing:', error);
-            }
+            loadPortfolio();
+            loadPositions();
+            loadNews();
         }
-
-        // Show Add Modal
-        function showAddModal() {
-            document.getElementById('addModal').classList.remove('hidden');
-            document.getElementById('addModal').classList.add('flex');
-        }
-
-        function hideAddModal() {
-            document.getElementById('addModal').classList.add('hidden');
-            document.getElementById('addModal').classList.remove('flex');
-        }
-
-        // Add Stock
-        document.getElementById('addForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const symbol = document.getElementById('stockSymbol').value.toUpperCase();
-            const shares = parseFloat(document.getElementById('stockShares').value);
-            const avgCost = parseFloat(document.getElementById('stockCost').value);
-            
-            if (!symbol || !shares || !avgCost) {
-                alert('請填寫所有欄位');
-                return;
-            }
-            
-            if (!HAS_BACKEND) {
-                alert('目前為靜態展示版本，無法直接在此新增持股。');
-                return;
-            }
-            
-            try {
-                await fetch(`${API_BASE}/stocks`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        symbol: symbol,
-                        market: symbol.match(/^[0-9]+$/) ? 'TW' : 'US'
-                    })
-                });
-                
-                await fetch(`${API_BASE}/positions`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        symbol: symbol,
-                        shares: shares,
-                        avg_cost: avgCost
-                    })
-                });
-                
-                hideAddModal();
-                document.getElementById('addForm').reset();
-                refreshAll();
-            } catch (error) {
-                console.error('Error adding stock:', error);
-                alert('新增失敗');
-            }
-        });
-
-        // Show Detail
-        async function showDetail(symbol) {
-            if (!HAS_BACKEND) {
-                alert('目前為靜態展示版本，詳細分析需啟動後端 API。');
-                return;
-            }
-            try {
-                const response = await fetch(`${API_BASE}/analyze/${symbol}`);
-                const data = await response.json();
-                
-                document.getElementById('detailSymbol').textContent = data.symbol;
-                document.getElementById('detailName').textContent = data.fundamental?.company_name || '';
-                
-                // Metrics
-                const metrics = [
-                    { label: '現價', value: `$${data.price?.current_price?.toFixed(2) || '-'}` },
-                    { label: '漲跌', value: `${data.price?.previous_close ? 
-                        ((data.price.current_price - data.price.previous_close) / data.price.previous_close * 100).toFixed(2) + '%' : '-'}` },
-                    { label: 'RSI', value: data.technicals?.rsi?.toFixed(0) || '-' },
-                    { label: 'MA20', value: `$${data.technicals?.ma20?.toFixed(2) || '-'}` },
-                    { label: '本益比', value: data.fundamental?.pe_ratio?.toFixed(1) || '-' },
-                    { label: '殖利率', value: data.fundamental?.dividend_yield ? 
-                        (data.fundamental.dividend_yield * 100).toFixed(2) + '%' : '-' },
-                    { label: '建議', value: data.recommendation, 
-                      color: data.recommendation?.includes('BUY') ? 'text-green-400' : 
-                             data.recommendation?.includes('SELL') ? 'text-red-400' : 'text-yellow-400' }
-                ];
-                
-                document.getElementById('detailMetrics').innerHTML = metrics.map(m => `
-                    <div class="bg-white/5 rounded-lg p-3">
-                        <div class="text-gray-400 text-sm">${m.label}</div>
-                        <div class="text-lg font-semibold ${m.color || ''}">${m.value}</div>
-                    </div>
-                `).join('');
-                
-                // Chart
-                const chart = new ApexCharts(document.querySelector("#detailChart"), {
-                    series: [{ name: 'Price', data: [] }],
-                    chart: {
-                        type: 'candlestick',
-                        height: 250,
-                        background: 'transparent',
-                        foreColor: '#9ca3af'
-                    },
-                    xaxis: { type: 'datetime' },
-                    yaxis: { tooltip: { enabled: true } },
-                    colors: ['#22c55e', '#ef4444'],
-                    stroke: { width: 1 }
-                });
-                
-                document.getElementById('detailModal').classList.remove('hidden');
-                document.getElementById('detailModal').classList.add('flex');
-            } catch (error) {
-                console.error('Error loading detail:', error);
-            }
-        }
-
-        function hideDetailModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-            document.getElementById('detailModal').classList.remove('flex');
-        }
-
-        // Auto refresh every 5 minutes
-        setInterval(refreshAll, 5 * 60 * 1000);
     </script>
 </body>
 </html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X Foundry - Stock Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card: #12121a;
+            --gold: #d4a574;
+            --text: #fff;
+            --muted: #6a6a7a;
+            --green: #30d158;
+            --red: #ff453a;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .profit { color: var(--green); }
+        .loss { color: var(--red); }
+    </style>
+</head>
+<body>
+    <header class="sticky top-0 bg-[#0a0a0f]/95 backdrop-blur-sm z-50 border-b border-[#1a1a24] px-5 py-4">
+        <div class="flex justify-between items-center">
+            <span class="font-semibold text-lg">Stock Portfolio</span>
+            <span class="text-xs text-[var(--muted)]" id="lastUpdate">—</span>
+        </div>
+    </header>
+
+    <!-- Summary -->
+    <section class="p-5">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-[var(--card)] rounded-xl p-4">
+                <p class="text-xs text-[var(--muted)] mb-1">總市值</p>
+                <p class="text-xl font-semibold" id="totalValue">—</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-xl p-4">
+                <p class="text-xs text-[var(--muted)] mb-1">未實現損益</p>
+                <p class="text-xl font-semibold" id="totalPL">—</p>
+            </div>
+        </div>
+        
+        <!-- Category Summary -->
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button onclick="filterBy('all')" class="filter-btn active px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="all">全部</button>
+            <button onclick="filterBy('tech')" class="filter-btn px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="tech">科技</button>
+            <button onclick="filterBy('semicon')" class="filter-btn px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="semicon">半導體</button>
+            <button onclick="filterBy('cloud')" class="filter-btn px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="cloud">雲端</button>
+            <button onclick="filterBy('ev')" class="filter-btn px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="ev">電動車</button>
+            <button onclick="filterBy('crypto')" class="filter-btn px-4 py-2 rounded-lg bg-[var(--card)] text-xs whitespace-nowrap" data-filter="crypto">加密</button>
+        </div>
+    </section>
+
+    <!-- Holdings -->
+    <section class="px-5 pb-12">
+        <div id="holdings" class="space-y-2"></div>
+    </section>
+
+    <!-- Analysis -->
+    <section class="px-5 pb-12">
+        <h2 class="text-base font-semibold mb-4">📊 持股分析</h2>
+        <div class="bg-[var(--card)] rounded-xl p-4 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm">類股配置</span>
+                <span class="text-xs text-[var(--muted)]">依市值</span>
+            </div>
+            <div id="allocation" class="space-y-2"></div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="bg-[var(--card)] rounded-xl p-4">
+                <p class="text-xs text-[var(--muted)] mb-2">漲幅最大</p>
+                <p class="text-lg font-semibold profit" id="topGainer">—</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-xl p-4">
+                <p class="text-xs text-[var(--muted)] mb-2">跌幅最大</p>
+                <p class="text-lg font-semibold loss" id="topLoser">—</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const categories = {
+            'TSM': 'semicon', 'NVDA': 'semicon', 'AMD': 'semicon', 'ASML': 'semicon', 'AMAT': 'semicon',
+            'GOOG': 'cloud', 'MSFT': 'cloud', 'AMZN': 'cloud', 'META': 'cloud',
+            'TSLA': 'ev',
+            'COIN': 'crypto',
+            'SNPS': 'tech', 'AVGO': 'tech', 'PLTR': 'tech', 'CRWD': 'tech',
+            'BABA': 'tech', 'SOFI': 'tech', 'CAVA': 'tech', 'HIMS': 'tech',
+            'ONDS': 'tech', 'CHYM': 'tech', 'EOSE': 'tech', 'GCL': 'tech', 'RKLB': 'tech',
+            'ITA': 'other', 'CRWV': 'other'
+        };
+        
+        let positions = [];
+        let currentFilter = 'all';
+
+        async function loadData() {
+            try {
+                const resp = await fetch('./data/positions.json?t=' + Date.now());
+                const data = await resp.json();
+                positions = data.positions || [];
+                render();
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function render() {
+            const filtered = currentFilter === 'all' 
+                ? positions 
+                : positions.filter(p => categories[p.symbol] === currentFilter);
+            
+            // Sort by market value
+            filtered.sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
+            
+            // Total
+            const total = filtered.reduce((sum, p) => sum + (p.current_value || 0), 0);
+            const totalCost = filtered.reduce((sum, p) => sum + (p.shares * p.avg_cost), 0);
+            const pl = total - totalCost;
+            const plPct = totalCost > 0 ? (pl / totalCost * 100) : 0;
+            
+            document.getElementById('totalValue').textContent = '$' + Math.round(total).toLocaleString();
+            const plEl = document.getElementById('totalPL');
+            plEl.textContent = (pl >= 0 ? '+' : '') + '$' + Math.round(pl).toLocaleString() + ' (' + plPct.toFixed(2) + '%)';
+            plEl.className = 'text-xl font-semibold ' + (pl >= 0 ? 'profit' : 'loss');
+            
+            // Holdings list
+            document.getElementById('holdings').innerHTML = filtered.map(p => {
+                const plP = p.profit_loss_percent || 0;
+                const isProfit = plP >= 0;
+                return `
+                    <div class="bg-[var(--card)] rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold">${p.symbol}</p>
+                            <p class="text-xs text-[var(--muted)]">${p.shares} 股 @ $${p.current_price?.toFixed(2)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-semibold">$${Math.round(p.current_value).toLocaleString()}</p>
+                            <p class="text-xs ${isProfit ? 'profit' : 'loss'}">${isProfit ? '+' : ''}${plP.toFixed(2)}%</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Analysis
+            if (positions.length > 0) {
+                const sorted = [...positions].sort((a, b) => (b.profit_loss_percent || 0) - (a.profit_loss_percent || 0));
+                document.getElementById('topGainer').textContent = sorted[0].symbol + ' +' + sorted[0].profit_loss_percent.toFixed(1) + '%';
+                document.getElementById('topLoser').textContent = sorted[sorted.length-1].symbol + ' ' + sorted[sorted.length-1].profit_loss_percent.toFixed(1) + '%';
+                
+                // Category allocation
+                const catTotal = {};
+                positions.forEach(p => {
+                    const cat = categories[p.symbol] || 'other';
+                    catTotal[cat] = (catTotal[cat] || 0) + (p.current_value || 0);
+                });
+                
+                const catNames = { semicon: '半導體', cloud: '雲端', tech: '科技', ev: '電動車', crypto: '加密', other: '其他' };
+                const colors = { semicon: '#30d158', cloud: '#0a84ff', tech: '#bf5af2', ev: '#ff9f0a', crypto: '#ff453a', other: '#8e8e93' };
+                
+                let allocHtml = '';
+                Object.keys(catTotal).forEach(cat => {
+                    const pct = (catTotal[cat] / total * 100).toFixed(1);
+                    allocHtml += `
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>${catNames[cat] || cat}</span>
+                                <span>${pct}%</span>
+                            </div>
+                            <div class="h-2 bg-[#1a1a24] rounded-full overflow-hidden">
+                                <div class="h-full rounded-full" style="width: ${pct}%; background: ${colors[cat]}"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('allocation').innerHTML = allocHtml;
+            }
+            
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function filterBy(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === cat);
+            });
+            render();
+        }
+
+        loadData();
+        setInterval(loadData, 60000);
+    </script>
+</body>
+</html>
