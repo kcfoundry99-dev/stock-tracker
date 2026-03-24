@@ -1,0 +1,18 @@
+{
+  "currency": "USD",
+  "usd_to_twd": 31.5,
+  "total_value_usd": 213340.01,
+  "total_value_twd": 6720310.315,
+  "total_cost_usd": 206020.05,
+  "total_cost_twd": 6489631.575,
+  "total_profit_loss_usd": 7319.96,
+  "total_profit_loss_twd": 230678.74,
+  "total_profit_loss_percent": 3.55,
+  "updated_at": "2026-03-18T03:30:00.000000",
+  "by_recommendation": {
+    "HOLD": {
+      "count": 27,
+      "value": 6720310.315
+    }
+  }
+}
